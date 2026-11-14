@@ -1,6 +1,6 @@
 # GitHub: постоянная страница и автоматические обновления
 
-Страница пользователей: **https://dfkzg.github.io/Timeaxis/**.
+Страница пользователей: **https://dfkzg.github.io/Temoraxis/**.
 
 Она показывает последний опубликованный релиз и ведёт непосредственно к APK. Учётная запись GitHub для скачивания из публичного репозитория не нужна. Сам GitHub Pages не синхронизирует задачи: сервер из `server/` размещается отдельно.
 
@@ -43,8 +43,8 @@ Workflow сначала создаёт черновик релиза, загру
 ```
 python stage_web.py
 python tools/prepare_release.py --validate-only
-python android/build.py --sdk PATH_TO_SDK --keystore PATH_TO_PRIVATE_KEY --output dist/timeaxis-android.apk
-python tools/check_signing.py dist/timeaxis-android.apk --sdk PATH_TO_SDK
+python android/build.py --sdk PATH_TO_SDK --keystore PATH_TO_PRIVATE_KEY --output dist/temoraxis-android.apk
+python tools/check_signing.py dist/temoraxis-android.apk --sdk PATH_TO_SDK
 python tools/prepare_release.py
 ```
 

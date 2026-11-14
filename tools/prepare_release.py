@@ -13,23 +13,23 @@ gradle=(ROOT/'android/app/build.gradle').read_text()
 if "versionName '"+version+"'" not in gradle or not re.search(r'\bversionCode\s+'+str(code)+r'\b',gradle):raise SystemExit('Gradle version differs')
 if json.loads((ROOT/'package.json').read_text())['version']!=version:raise SystemExit('package.json version differs')
 if args.validate_only:print('Version validated:',version,code);raise SystemExit(0)
-dist=ROOT/'dist';dist.mkdir(exist_ok=True);apk=dist/'timeaxis-android.apk'
-if not apk.is_file():raise SystemExit('Build dist/timeaxis-android.apk first')
+dist=ROOT/'dist';dist.mkdir(exist_ok=True);apk=dist/'temoraxis-android.apk'
+if not apk.is_file():raise SystemExit('Build dist/temoraxis-android.apk first')
 changelog=(ROOT/'CHANGELOG.md').read_text();match=re.search(r'^## '+re.escape(version)+r'\s*\n(.*?)(?=^## |\Z)',changelog,re.S|re.M)
 notes=match.group(1).strip() if match else 'Улучшения и исправления.'
 (dist/'release-notes.md').write_text(notes+'\n')
-meta.update(apk='timeaxis-android.apk',apkSha256=hashlib.sha256(apk.read_bytes()).hexdigest(),notes=notes)
+meta.update(apk='temoraxis-android.apk',apkSha256=hashlib.sha256(apk.read_bytes()).hexdigest(),notes=notes)
 (dist/'latest.json').write_text(json.dumps(meta,ensure_ascii=False,indent=2)+'\n')
 files=subprocess.check_output(['git','ls-files','-z'],cwd=ROOT).decode().split('\0')
-with zipfile.ZipFile(dist/'timeaxis-complete-kit.zip','w',zipfile.ZIP_DEFLATED) as archive:
+with zipfile.ZipFile(dist/'temoraxis-complete-kit.zip','w',zipfile.ZIP_DEFLATED) as archive:
  for name in files:
   if not name:continue
   path=Path(name)
   if any(part in {'.git','node_modules','build','data','dist','__pycache__'} for part in path.parts):continue
   if path.suffix in {'.keystore','.jks','.p12','.pem','.pfx','.sqlite','.db','.pyc'} or path.name=='.env':raise SystemExit('Private file is tracked: '+name)
-  archive.write(ROOT/path,'Timeaxis/'+name)
- archive.write(apk,'Timeaxis/releases/timeaxis-android.apk')
- archive.write(dist/'latest.json','Timeaxis/releases/latest.json')
-names=['timeaxis-android.apk','timeaxis-complete-kit.zip','latest.json']
+  archive.write(ROOT/path,'Temoraxis/'+name)
+ archive.write(apk,'Temoraxis/releases/temoraxis-android.apk')
+ archive.write(dist/'latest.json','Temoraxis/releases/latest.json')
+names=['temoraxis-android.apk','temoraxis-complete-kit.zip','latest.json']
 (dist/'SHA256SUMS.txt').write_text(''.join(hashlib.sha256((dist/name).read_bytes()).hexdigest()+'  '+name+'\n' for name in names))
 print('Public release prepared:',version)

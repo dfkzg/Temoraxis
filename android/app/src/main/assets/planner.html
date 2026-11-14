@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#0a0a12">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0a0a12">
-<title>Планёр</title>
+<title>Temoraxis</title>
 <style>
 /* ============================================================
    ПЕРЕМЕННЫЕ ТЕМ
@@ -2925,7 +2925,7 @@ function showTaskReminder(task,date) {
   actions.append(open,dismiss);banner.append(text,actions);document.body.append(banner);
   playPlannerSound(task.reminder.sound||plannerSettings().sound);
   if('Notification' in window&&Notification.permission==='granted'){
-    try{const notification=new Notification('Планёр · напоминание',{body:text.textContent,tag:key});notification.onclick=()=>{window.focus();navigateToTasks(task.id,date);notification.close();};}catch(_){}
+    try{const notification=new Notification('Temoraxis · напоминание',{body:text.textContent,tag:key});notification.onclick=()=>{window.focus();navigateToTasks(task.id,date);notification.close();};}catch(_){}
   }
 }
 function checkTaskReminders() {

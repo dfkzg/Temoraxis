@@ -71,7 +71,7 @@ jobs:
           value = os.environ.get('KEY_BASE64', '')
           if not value:
               raise SystemExit('Add ANDROID_KEYSTORE_BASE64 in Settings > Secrets and variables > Actions. The signing key must match previously installed APKs.')
-          key = Path(os.environ['RUNNER_TEMP']) / 'timeaxis-signing.keystore'
+          key = Path(os.environ['RUNNER_TEMP']) / 'temoraxis-signing.keystore'
           key.write_bytes(base64.b64decode(value, validate=True))
           key.chmod(0o600)
           PY
@@ -83,8 +83,8 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || 'androiddebugkey' }}
         run: |
           python stage_web.py
-          python android/build.py --sdk "$ANDROID_HOME" --keystore "$RUNNER_TEMP/timeaxis-signing.keystore" --key-alias "$ANDROID_KEY_ALIAS" --output dist/timeaxis-android.apk
-          python tools/check_signing.py dist/timeaxis-android.apk --sdk "$ANDROID_HOME"
+          python android/build.py --sdk "$ANDROID_HOME" --keystore "$RUNNER_TEMP/temoraxis-signing.keystore" --key-alias "$ANDROID_KEY_ALIAS" --output dist/temoraxis-android.apk
+          python tools/check_signing.py dist/temoraxis-android.apk --sdk "$ANDROID_HOME"
           python tools/prepare_release.py
       - name: Publish complete release atomically
         if: steps.existing.outputs.published != 'true'
@@ -93,10 +93,10 @@ jobs:
           VERSION: ${{ steps.version.outputs.value }}
         run: |
           if ! gh release view "$TAG" >/dev/null 2>&1; then
-            gh release create "$TAG" --target "$GITHUB_SHA" --draft --title "Timeaxis $VERSION" --notes-file dist/release-notes.md
+            gh release create "$TAG" --target "$GITHUB_SHA" --draft --title "Temoraxis $VERSION" --notes-file dist/release-notes.md
           fi
-          gh release upload "$TAG" dist/timeaxis-android.apk dist/timeaxis-complete-kit.zip dist/latest.json dist/SHA256SUMS.txt --clobber
+          gh release upload "$TAG" dist/temoraxis-android.apk dist/temoraxis-complete-kit.zip dist/latest.json dist/SHA256SUMS.txt --clobber
           gh release edit "$TAG" --draft=false --latest
       - name: Remove private signing material
         if: always()
-        run: rm -f "$RUNNER_TEMP/timeaxis-signing.keystore"
+        run: rm -f "$RUNNER_TEMP/temoraxis-signing.keystore"
