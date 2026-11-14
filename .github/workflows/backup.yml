@@ -21,12 +21,13 @@ jobs:
         env:
           DATABASE: ${{ secrets.SUPABASE_BACKUP_DB_URL }}
           DRIVE: ${{ secrets.BACKUP_GOOGLE_DRIVE_JSON }}
+          YANDEX: ${{ secrets.BACKUP_YANDEX_TOKEN }}
           RECIPIENT: ${{ secrets.BACKUP_AGE_RECIPIENT }}
         run: |
           python - <<'PY'
           import os
-          if not all(os.environ.get(key) for key in ('DATABASE','DRIVE','RECIPIENT')):
-              raise SystemExit('Backup is not configured. Follow docs/BACKUPS.md and add all three repository secrets.')
+          if not all(os.environ.get(key) for key in ('DATABASE','RECIPIENT')) or not (os.environ.get('YANDEX') or os.environ.get('DRIVE')):
+              raise SystemExit('Backup is not configured. Follow docs/BACKUPS.md and add the database, recipient and storage secrets.')
           PY
       - name: Install encryption and database tools
         run: |
@@ -37,5 +38,6 @@ jobs:
         env:
           SUPABASE_BACKUP_DB_URL: ${{ secrets.SUPABASE_BACKUP_DB_URL }}
           BACKUP_GOOGLE_DRIVE_JSON: ${{ secrets.BACKUP_GOOGLE_DRIVE_JSON }}
+          BACKUP_YANDEX_TOKEN: ${{ secrets.BACKUP_YANDEX_TOKEN }}
           BACKUP_AGE_RECIPIENT: ${{ secrets.BACKUP_AGE_RECIPIENT }}
-        run: python tools/backup/drive_backup.py
+        run: python tools/backup/run_backup.py

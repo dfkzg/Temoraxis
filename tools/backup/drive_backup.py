@@ -8,7 +8,9 @@ SET='temoraxis-udrlbmlofdzevwvzssfw-v1'
 NAME=re.compile(r'temoraxis-\d{8}T\d{6}Z-[0-9a-f]{12}\.dump\.age\Z')
 SCHEMAS=('public','temoraxis_private','auth')
 
-class BackupError(Exception):pass
+class BackupError(Exception):
+    def __init__(self,message,status=None):
+        super().__init__(message);self.status=status
 
 def request(url,token=None,method='GET',data=None,headers=None):
     h=dict(headers or {})
@@ -19,7 +21,7 @@ def request(url,token=None,method='GET',data=None,headers=None):
     except urllib.error.HTTPError as e:
         # Never print server responses: they may contain identifiers/credentials.
         if e.code==308:return e.code,e.headers,b''
-        raise BackupError('Cloud request failed (HTTP '+str(e.code)+').') from None
+        raise BackupError('Cloud request failed (HTTP '+str(e.code)+').',status=e.code) from None
     except (OSError,TimeoutError):raise BackupError('Cloud request failed; no old backups were removed.') from None
 
 def json_request(url,token=None,method='GET',body=None):

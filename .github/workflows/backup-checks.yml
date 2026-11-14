@@ -18,4 +18,5 @@ jobs:
           python-version: '3.12'
       - run: sudo apt-get update -qq && sudo apt-get install --yes age
       - run: python tests/test_backup.py
+      - run: python tests/test_backup_yandex.py
       - run: python tests/test_backup_roundtrip.py
