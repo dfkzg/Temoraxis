@@ -1,5 +1,5 @@
 """Planner sync server. Python 3.11+, SQLite, no external dependencies."""
-import hashlib, hmac, json, os, re, secrets, sqlite3, threading, time
+import hashlib, hmac, json, os, re, secrets, sqlite3, subprocess, sys, threading, time
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlsplit, unquote
@@ -159,6 +159,8 @@ class Handler(BaseHTTPRequestHandler):
         except (ValueError,TypeError,AttributeError,RecursionError,json.JSONDecodeError):return self.reply(400,{'error':'Некорректный запрос.'})
 
 if __name__=='__main__':
+    if not (ROOT/'web'/'planner.html').is_file():
+        subprocess.run([sys.executable,str(ROOT.parent/'stage_web.py')],check=True)
     init_db();host=os.environ.get('PLANNER_HOST','127.0.0.1');port=int(os.environ.get('PLANNER_PORT','8080'))
     print(f'Planner server listening on {host}:{port}',flush=True)
     ThreadingHTTPServer((host,port),Handler).serve_forever()

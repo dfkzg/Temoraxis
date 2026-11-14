@@ -17,3 +17,8 @@ releases/*.zip
 *.p12
 *.pem
 *.pfx
+
+# Generated from web-source by stage_web.py
+/server/web/
+/android/app/src/main/assets/
+node_modules/

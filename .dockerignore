@@ -1,0 +1,9 @@
+# Include only build inputs; never send keys, databases or .env to Docker.
+**
+!stage_web.py
+!web-source/
+!web-source/**
+!server/
+!server/server.py
+!server/admin.py
+!server/Dockerfile

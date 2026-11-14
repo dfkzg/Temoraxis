@@ -7,3 +7,14 @@ android {
     compileOptions { sourceCompatibility JavaVersion.VERSION_1_8; targetCompatibility JavaVersion.VERSION_1_8 }
     buildTypes { debug { debuggable true }; release { minifyEnabled false } }
 }
+
+// Web resources are generated locally; no duplicated assets are stored in Git.
+def stageWeb = tasks.register('stageWeb', Exec) {
+    def repositoryRoot = rootProject.projectDir.parentFile
+    workingDir repositoryRoot
+    commandLine(System.getenv('PLANNER_PYTHON') ?: (System.getProperty('os.name').toLowerCase().contains('windows') ? 'python' : 'python3'), 'stage_web.py')
+    inputs.dir(new File(repositoryRoot, 'web-source'))
+    inputs.file(new File(repositoryRoot, 'stage_web.py'))
+    outputs.dir(file('src/main/assets'))
+}
+tasks.named('preBuild').configure { dependsOn stageWeb }

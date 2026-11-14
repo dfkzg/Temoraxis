@@ -2,8 +2,8 @@ from pathlib import Path
 import json,shutil
 ROOT=Path(__file__).resolve().parent
 SOURCE=ROOT/'web-source'
-css=(ROOT/'sync.css').read_text()
-common=(ROOT/'sync.js').read_text().replace("/*SYNC_CSS*/''",json.dumps(css,ensure_ascii=False))
+css=(SOURCE/'sync.css').read_text()
+common=(SOURCE/'sync.js').read_text().replace("/*SYNC_CSS*/''",json.dumps(css,ensure_ascii=False))
 for name in ['planner.html','Start_page.html']:
  s=(SOURCE/name).read_text()
  s=s.replace('<meta charset="UTF-8">','<meta charset="UTF-8">\n<link rel="manifest" href="manifest.webmanifest">\n<link rel="icon" href="icon.svg" type="image/svg+xml">\n<link rel="apple-touch-icon" href="icon-180.png">\n<meta name="theme-color" content="#0a0a12">',1)
@@ -35,4 +35,4 @@ for name in ['planner.html','Start_page.html']:
   folder.mkdir(parents=True,exist_ok=True);(folder/name).write_text(s)
 for name in ['manifest.webmanifest','sw.js','icon.svg','icon-180.png','icon-192.png','icon-512.png']:
  for folder in [ROOT/'server'/'web',ROOT/'android'/'app'/'src'/'main'/'assets']:
-  shutil.copy2(ROOT/name,folder/name)
+  shutil.copy2(SOURCE/name,folder/name)

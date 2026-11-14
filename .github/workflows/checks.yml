@@ -28,6 +28,10 @@ jobs:
           python stage_web.py
           python tools/prepare_release.py --validate-only
           python -m py_compile server/server.py server/admin.py
+      - name: Container build from source
+        run: |
+          docker build --file server/Dockerfile --tag temoraxis-build-check .
+          docker run --rm temoraxis-build-check python -c "from pathlib import Path; assert Path('web/planner.html').is_file(); assert Path('web/icon-512.png').is_file()"
       - name: API tests
         run: python tests/test_server.py
       - name: Native reminder rules

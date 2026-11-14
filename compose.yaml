@@ -1,6 +1,8 @@
 services:
   app:
-    build: ./server
+    build:
+      context: .
+      dockerfile: server/Dockerfile
     restart: unless-stopped
     environment:
       PLANNER_INVITE_CODE: ${PLANNER_INVITE_CODE:?Set a long random invite code in .env}

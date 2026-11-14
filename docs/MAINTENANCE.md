@@ -2,7 +2,7 @@
 
 Инструкции для владельца сервера и разработчиков. Команды выполняются из корня проекта.
 
-Автоматическая сборка и публикация: [GITHUB-SETUP.md](../GITHUB-SETUP.md).
+Автоматическая сборка и публикация: [GITHUB-SETUP.md](GITHUB-SETUP.md).
 
 ## Что находится в комплекте
 
@@ -10,9 +10,9 @@
 - `server/` — сервер синхронизации на Python 3.11+ и SQLite без внешних Python-зависимостей.
 - `server/web/` — веб-интерфейс для ПК и PWA для телефона, включая iPhone.
 - `compose.yaml`, `Caddyfile`, `.env.example` — запуск на VPS с HTTPS.
-- `web-source/`, `sync.js`, `sync.css`, `stage_web.py` — исходные HTML и сборка общего интерфейса.
+- `web-source/`, `stage_web.py` — исходные HTML и сборка общего интерфейса.
 - `tests/` — проверки сервера, правил Android-напоминаний и сценариев синхронизации.
-- `TEST-REPORT.md` — что фактически проверено и какие проверки ещё нужны.
+- `docs/TEST-REPORT.md` — что фактически проверено и какие проверки ещё нужны.
 
 ## Размещение сервера
 
@@ -78,6 +78,14 @@ python android/build.py --sdk ПУТЬ_К_ANDROID_SDK --output planner-test.apk
 
 Нужны JDK с `javac`, Android SDK Platform 35 и Build Tools 35.0.0. Если доступна только JRE, скрипт поддерживает параметр `--compiler-jar` для Eclipse ECJ 3.39.0. Инструменты SDK, JDK и ECJ в архив не включены. Тестовый ключ скрипт создаёт локально в `android/debug.keystore`; храните его, если хотите подписывать обновления тем же ключом.
 
-Проверки API: `python tests/test_server.py`. Для браузерных тестов нужен Playwright/Chromium; команды перечислены в `TEST-REPORT.md`.
+Проверки API: `python tests/test_server.py`. Для браузерных тестов нужен Playwright/Chromium; команды перечислены в `docs/TEST-REPORT.md`.
 
 Локальная разработка сервера без Docker: задайте переменные `PLANNER_INVITE_CODE`, `PLANNER_ALLOW_HTTP=1`, затем запустите `python server/server.py`; адрес — `http://127.0.0.1:8080`. HTTP на localhost предназначен для разработки. APK подключается только по HTTPS.
+
+## Структура исходников и иконки
+
+`web-source/` — единственное место для редактирования HTML, общего кода синхронизации, manifest, service worker и веб-иконок. `stage_web.py` создаёт `server/web/` и `android/app/src/main/assets/`; эти каталоги исключены из Git. Python-сборка APK и Gradle подготавливают их автоматически. При запуске сервера из чистого клона отсутствующие веб-файлы создаются автоматически; после редактирования исходников выполните `python stage_web.py` или пересоберите Docker-образ.
+
+SVG используется во вкладке браузера, PNG 180 — для iPhone, PNG 192 и 512 — для установки PWA. Android-векторы `ic_launcher.xml` и `ic_notification.xml` нужны для значка приложения и монохромных уведомлений. Это разные форматы для разных платформ, а не лишние копии.
+
+Docker собирается из корня: `docker build -f server/Dockerfile .`; `docker compose up -d --build` уже использует этот контекст. Для Gradle требуется Python 3; при необходимости путь задаётся переменной `PLANNER_PYTHON`. В Git остаются два небольших AndroidManifest: Gradle использует вариант без package, прямой aapt2 — вариант с package.

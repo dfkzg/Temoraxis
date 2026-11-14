@@ -5,8 +5,8 @@ const {chromium}=require('playwright');
  const page=await browser.newPage({viewport:{width:412,height:820},isMobile:true,hasTouch:true});
  await page.goto(process.env.PLANNER_TEST_URL+'/planner.html');
  // A task detail remains selected in the inactive Tasks page.
- await page.evaluate(()=>{document.getElementById('tasksDetail').hidden=false;});
  await page.locator('[data-page="calendar"]').click();
+ await page.evaluate(()=>{document.getElementById('tasksDetail').hidden=false;});
  await page.waitForTimeout(400);
  for(const [width,height] of [[412,820],[320,568],[844,390]]){
   await page.setViewportSize({width,height});

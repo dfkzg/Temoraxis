@@ -1,8 +1,9 @@
 """Build the test APK with JDK 17+ and Android SDK platform/build-tools 35."""
 from pathlib import Path
-import argparse,os,shutil,subprocess,zipfile
+import argparse,os,shutil,subprocess,sys,zipfile
 ROOT=Path(__file__).resolve().parent
 p=argparse.ArgumentParser();p.add_argument('--sdk',default=os.environ.get('ANDROID_HOME',''));p.add_argument('--compiler-jar');p.add_argument('--keystore');p.add_argument('--key-alias',default='androiddebugkey');p.add_argument('--output',default=str(ROOT/'build'/'planner-test.apk'));args=p.parse_args()
+subprocess.run([sys.executable,str(ROOT.parent/'stage_web.py')],check=True)
 sdk=Path(args.sdk)
 platform=sdk/'platforms'/'android-35'/'android.jar'
 if not platform.exists():platform=sdk/'android-35'/'android.jar'
