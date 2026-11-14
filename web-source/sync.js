@@ -69,7 +69,7 @@ async function authenticate(register){
    result=await api(register?'/api/register':'/api/login',{url,method:'POST',anonymous:true,body:{username,password,inviteCode}});
    result={...result,url,backend:'server'};
   }
-  const owner=read(OWNER,null);write(AUTH,{...result,accountChanged:!!owner&&(owner.url!==url||owner.username!==result.username)});localStorage.removeItem(BASE);renderConnection();setStatus('Вход выполнен. Нажмите «Синхронизировать».');
+  const owner=read(OWNER,null);write(AUTH,{...result,accountChanged:!!owner&&(owner.url!==url||owner.username!==result.username)});localStorage.removeItem(BASE);renderConnection();setStatus('Вход выполнен. Синхронизация начнётся автоматически.');
  }catch(error){setStatus(error.message);}finally{document.getElementById('psync-password').value='';document.getElementById('psync-invite').value='';busy=false;}
 }
 function editingLocalData(){const modal=document.getElementById('taskModalBg');return !!((modal&&!modal.hidden)||document.querySelector('.modal-bg.open')||(typeof ClockUI!=='undefined'&&ClockUI.dragging));}
