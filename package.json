@@ -1,6 +1,6 @@
 {
   "name": "personal-planner",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "private": true,
   "description": "Browser tests for the personal planner",
   "devDependencies": {
