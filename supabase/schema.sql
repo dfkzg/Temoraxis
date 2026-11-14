@@ -8,6 +8,8 @@ create table if not exists temoraxis_private.config (
     id boolean primary key default true check (id), invite_hash bytea
 );
 insert into temoraxis_private.config(id) values(true) on conflict do nothing;
+alter table temoraxis_private.config enable row level security;
+-- No client policies: default deny, plus the private schema and explicit privilege revocations.
 revoke all on temoraxis_private.config from public, anon, authenticated;
 
 create table if not exists public.temoraxis_members (

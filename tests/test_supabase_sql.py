@@ -45,6 +45,11 @@ grant usage on schema auth to anon,authenticated; grant execute on function auth
   self.assertEqual(self.as_user(a,'select count(*) from public.temoraxis_documents').stdout.strip().splitlines()[-1],'1')
   denied=self.as_user(a,"update public.temoraxis_documents set revision=99",False);self.assertNotEqual(denied.returncode,0);self.assertIn('permission denied',denied.stderr)
   denied=self.as_user(a,'select * from temoraxis_private.config',False);self.assertNotEqual(denied.returncode,0);self.assertIn('permission denied',denied.stderr)
+ def test_private_config_has_rls_without_client_policies(self):
+  enabled=self.sql("select relrowsecurity from pg_class where oid='temoraxis_private.config'::regclass").stdout.strip()
+  self.assertEqual(enabled,'t')
+  policies=self.sql("select count(*) from pg_policies where schemaname='temoraxis_private' and tablename='config'").stdout.strip()
+  self.assertEqual(policies,'0')
  def test_invitation_and_anonymous_access(self):
   uid=self.user(False)
   denied=self.as_user(uid,"select public.temoraxis_join('incorrect-invitation')",False);self.assertNotEqual(denied.returncode,0)
