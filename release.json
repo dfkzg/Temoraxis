@@ -1,5 +1,5 @@
 {
-  "version": "0.1.7",
+  "version": "0.1.8",
   "date": "2026-11-14",
   "androidPackage": "ru.personal.planner",
   "minAndroid": 8,
@@ -8,6 +8,6 @@
   "apkSha256": null,
   "signing": "development",
   "serverDeployed": false,
-  "versionCode": 8,
-  "changeNotes": "Добавлен фоновый звук будильника Android, запрос точных будильников и подсказка настройки работы в фоне."
+  "versionCode": 9,
+  "changeNotes": "После обновления приложение заново проверяет разрешения и предлагает настроить уведомления, точные будильники, работу без оптимизации батареи и автозапуск realme."
 }

@@ -19,11 +19,13 @@ import java.util.*;
 public class MainActivity extends Activity {
     static final String ORIGIN="https://appassets.androidplatform.net";
     WebView web;
+    PermissionSetup permissionSetup;
     ValueCallback<Uri[]> fileCallback;
     byte[] pendingExport;
     String pendingTaskId,pendingTaskDate;
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
+        permissionSetup=new PermissionSetup(this);
         if(Build.VERSION.SDK_INT>=30)getWindow().setDecorFitsSystemWindows(false);
         pendingTaskId=getIntent().getStringExtra("taskId");pendingTaskDate=getIntent().getStringExtra("date");
         LinearLayout root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setBackgroundColor(Color.rgb(10,10,18));
@@ -34,7 +36,7 @@ public class MainActivity extends Activity {
         LinearLayout toolbar=new LinearLayout(this); toolbar.setGravity(Gravity.CENTER_VERTICAL); toolbar.setBackgroundColor(Color.rgb(18,18,28));
         addTab(toolbar,"Temoraxis",()->load("planner.html"));addTab(toolbar,"Экспресс-панель",()->load("Start_page.html"));
         Button menu=new Button(this);menu.setText("⋮");menu.setTextColor(Color.WHITE);menu.setBackgroundColor(Color.TRANSPARENT);menu.setContentDescription("Разрешения приложения");
-        menu.setOnClickListener(v->{PopupMenu popup=new PopupMenu(this,menu);popup.getMenu().add("Разрешить уведомления").setOnMenuItemClickListener(item->{requestNotifications();return true;});popup.getMenu().add("Точные напоминания").setOnMenuItemClickListener(item->{requestExactAlarms();return true;});popup.getMenu().add("Работа в фоне").setOnMenuItemClickListener(item->{new AlertDialog.Builder(this).setTitle("Напоминания после закрытия").setMessage("Для Temoraxis выберите режим батареи «Без ограничений» и разрешите автозапуск, если он есть в настройках телефона. Для будильников вовремя также разрешите «Точные напоминания» в меню приложения. Принудительная остановка приложения отключает напоминания до следующего открытия.").setPositiveButton("Настройки приложения",(d,w)->startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+getPackageName())))).setNegativeButton("Понятно",null).show();return true;});popup.getMenu().add("О приложении").setOnMenuItemClickListener(item->{new AlertDialog.Builder(this).setTitle("Temoraxis · 0.1.7").setMessage("Локальные задачи и системные напоминания. Синхронизация подключается в настройках после размещения сервера. Фоновые напоминания используют системный звук будильника Android и его громкость. Сигнал звучит до остановки или в течение минуты.").setPositiveButton("Понятно",null).show();return true;});popup.show();});
+        menu.setOnClickListener(v->{PopupMenu popup=new PopupMenu(this,menu);popup.getMenu().add("Разрешить уведомления").setOnMenuItemClickListener(item->{requestNotifications();return true;});popup.getMenu().add("Точные напоминания").setOnMenuItemClickListener(item->{requestExactAlarms();return true;});popup.getMenu().add("Разрешения и работа в фоне").setOnMenuItemClickListener(item->{permissionSetup.start();return true;});popup.getMenu().add("О приложении").setOnMenuItemClickListener(item->{new AlertDialog.Builder(this).setTitle("Temoraxis · 0.1.8").setMessage("Локальные задачи и системные напоминания. Синхронизация подключается в настройках после размещения сервера. Фоновые напоминания используют системный звук будильника Android и его громкость. Сигнал звучит до остановки или в течение минуты.").setPositiveButton("Понятно",null).show();return true;});popup.show();});
         toolbar.addView(menu,new LinearLayout.LayoutParams(dp(48),dp(44)));root.addView(toolbar);
         web=new WebView(this);web.setBackgroundColor(Color.rgb(10,10,18));
         WebSettings settings=web.getSettings();settings.setJavaScriptEnabled(true);settings.setDomStorageEnabled(true);settings.setAllowFileAccess(false);settings.setAllowContentAccess(true);settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);settings.setSupportMultipleWindows(false);
@@ -71,7 +73,7 @@ public class MainActivity extends Activity {
         });
         root.addView(web,new LinearLayout.LayoutParams(-1,0,1));setContentView(root);
         if(saved==null||web.restoreState(saved)==null)load("planner.html");
-        if(saved==null)web.post(()->offerNotificationPermission());
+        if(saved==null)web.post(()->permissionSetup.offerAfterUpdate());
         if(Build.VERSION.SDK_INT>=33)getOnBackInvokedDispatcher().registerOnBackInvokedCallback(0,()->handleBack());
     }
     int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
@@ -80,15 +82,6 @@ public class MainActivity extends Activity {
     static WebResourceResponse response(String type,String text,int status){return new WebResourceResponse(type,"UTF-8",status,status==404?"Not Found":"Forbidden",Collections.emptyMap(),new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8)));}
     boolean notificationsEnabled(){return ((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).areNotificationsEnabled();}
     void openNotificationSettings(){startActivity(new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE,getPackageName()));}
-    void offerNotificationPermission(){
-        SharedPreferences prefs=getSharedPreferences("permission-prompts",MODE_PRIVATE);
-        if(notificationsEnabled()){offerExactAlarmPermission();return;}
-        if(prefs.getBoolean("notification-intro-shown",false))return;
-        prefs.edit().putBoolean("notification-intro-shown",true).apply();
-        new AlertDialog.Builder(this).setTitle("Разрешить уведомления?")
-            .setMessage("Temoraxis отправляет напоминания о задачах, даже когда приложение свёрнуто. Разрешите уведомления, чтобы видеть эти напоминания.")
-            .setPositiveButton("Разрешить",(d,w)->requestNotifications()).setNegativeButton("Позже",null).show();
-    }
     void requestNotifications(){
         SharedPreferences prefs=getSharedPreferences("permission-prompts",MODE_PRIVATE);
         if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED){
@@ -98,18 +91,11 @@ public class MainActivity extends Activity {
         }else if(!notificationsEnabled())openNotificationSettings();
         else Toast.makeText(this,"Уведомления разрешены",Toast.LENGTH_SHORT).show();
     }
-    void offerExactAlarmPermission(){
-        if(Build.VERSION.SDK_INT<31||!notificationsEnabled()||((AlarmManager)getSystemService(ALARM_SERVICE)).canScheduleExactAlarms())return;
-        SharedPreferences prefs=getSharedPreferences("permission-prompts",MODE_PRIVATE);
-        if(prefs.getBoolean("exact-intro-shown",false))return;
-        prefs.edit().putBoolean("exact-intro-shown",true).apply();
-        new AlertDialog.Builder(this).setTitle("Будильники вовремя").setMessage("Разрешите точные будильники для Temoraxis, чтобы напоминания срабатывали при выключенном экране. В открывшихся настройках включите разрешение для приложения.").setPositiveButton("Разрешить",(d,w)->requestExactAlarms()).setNegativeButton("Позже",null).show();
-    }
     void requestExactAlarms(){if(Build.VERSION.SDK_INT>=31&&!((AlarmManager)getSystemService(ALARM_SERVICE)).canScheduleExactAlarms())startActivity(new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,Uri.parse("package:"+getPackageName())));else Toast.makeText(this,"Точные напоминания доступны",Toast.LENGTH_SHORT).show();}
     void injectNativeState(){if(web==null)return;if(pendingTaskId!=null && web.getUrl()!=null && web.getUrl().endsWith("planner.html")){String id=pendingTaskId,date=pendingTaskDate;web.evaluateJavascript("(function(){if(typeof navigateToTasks!=='function')return false;navigateToTasks("+JSONObject.quote(id)+","+JSONObject.quote(date)+");return true;})()",result->{if("true".equals(result)&&id.equals(pendingTaskId)){pendingTaskId=null;pendingTaskDate=null;}});}String pending=AlarmScheduler.pendingCompletions(this).toString();web.evaluateJavascript("window.dispatchEvent(new CustomEvent('planner-native-resume',{detail:"+pending+"}));",null);}
     @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);pendingTaskId=intent.getStringExtra("taskId");pendingTaskDate=intent.getStringExtra("date");if(pendingTaskId!=null)load("planner.html");}
-    @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] results){super.onRequestPermissionsResult(request,permissions,results);if(request==502){String config=AlarmScheduler.prefs(this).getString(AlarmScheduler.CONFIG,null);if(config!=null)AlarmScheduler.reconcile(this,config);injectNativeState();if(results.length>0&&results[0]==PackageManager.PERMISSION_GRANTED)web.post(()->offerExactAlarmPermission());if(results.length>0&&results[0]!=PackageManager.PERMISSION_GRANTED)Toast.makeText(this,"Уведомления отключены. Их можно разрешить в меню ⋮",Toast.LENGTH_LONG).show();}}
-    @Override protected void onResume(){super.onResume();String config=AlarmScheduler.prefs(this).getString(AlarmScheduler.CONFIG,null);if(config!=null)AlarmScheduler.reconcile(this,config);if(web!=null){web.onResume();injectNativeState();}}
+    @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] results){super.onRequestPermissionsResult(request,permissions,results);if(request==PermissionSetup.NOTIFICATIONS){String config=AlarmScheduler.prefs(this).getString(AlarmScheduler.CONFIG,null);if(config!=null)AlarmScheduler.reconcile(this,config);injectNativeState();permissionSetup.onResult();}if(request==502){String config=AlarmScheduler.prefs(this).getString(AlarmScheduler.CONFIG,null);if(config!=null)AlarmScheduler.reconcile(this,config);injectNativeState();if(results.length>0&&results[0]!=PackageManager.PERMISSION_GRANTED)Toast.makeText(this,"Уведомления отключены. Их можно разрешить в меню ⋮",Toast.LENGTH_LONG).show();}}
+    @Override protected void onResume(){super.onResume();String config=AlarmScheduler.prefs(this).getString(AlarmScheduler.CONFIG,null);if(config!=null)AlarmScheduler.reconcile(this,config);if(web!=null){web.onResume();injectNativeState();}if(permissionSetup!=null)permissionSetup.onResume();}
     @Override protected void onPause(){if(web!=null)web.onPause();super.onPause();}
     @Override protected void onSaveInstanceState(Bundle state){web.saveState(state);super.onSaveInstanceState(state);}
     @Override public void onBackPressed(){handleBack();}

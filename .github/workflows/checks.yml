@@ -35,6 +35,8 @@ jobs:
           curl --fail --location --retry 2 --output "$RUNNER_TEMP/json.jar" https://repo.maven.apache.org/maven2/org/json/json/20240303/json-20240303.jar
           python tools/check_test_dependency.py "$RUNNER_TEMP/json.jar"
           python tests/run_native_tests.py --json-jar "$RUNNER_TEMP/json.jar"
+      - name: Permission setup flow
+        run: python tests/run_permission_setup_tests.py
       - name: Browser tests
         run: |
           npm ci
