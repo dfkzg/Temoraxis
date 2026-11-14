@@ -8,7 +8,7 @@
 
 В репозитории откройте **Settings → Pages → Build and deployment → Source → GitHub Actions**.
 
-Workflow `Download page` публикует только каталог `docs/`. Никаких ключей или личных данных в нём нет.
+Workflow `Download page` публикует `dist/pages`, созданный `tools/prepare_pages.py` из страницы, sitemap и общих иконок. Технические инструкции из `docs/` в сайт не попадают. Ключей или личных данных в публичной сборке нет.
 
 ## Один раз: сохранить существующий ключ APK
 
