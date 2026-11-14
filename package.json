@@ -1,0 +1,12 @@
+{
+  "name": "personal-planner",
+  "version": "0.1.2",
+  "private": true,
+  "description": "Browser tests for the personal planner",
+  "devDependencies": {
+    "playwright": "1.62.1"
+  },
+  "scripts": {
+    "test:browser": "python tests/run_browser_tests.py"
+  }
+}

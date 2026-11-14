@@ -1,0 +1,28 @@
+services:
+  app:
+    build: ./server
+    restart: unless-stopped
+    environment:
+      PLANNER_INVITE_CODE: ${PLANNER_INVITE_CODE:?Set a long random invite code in .env}
+      PLANNER_ORIGINS: https://appassets.androidplatform.net
+      PLANNER_TRUST_PROXY: "1"
+    volumes:
+      - planner-data:/app/data
+    networks: [planner]
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      PLANNER_DOMAIN: ${PLANNER_DOMAIN:?Set the real domain in .env}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks: [planner]
+volumes:
+  planner-data:
+  caddy-data:
+  caddy-config:
+networks:
+  planner:

@@ -1,0 +1,19 @@
+.env
+__pycache__/
+*.pyc
+server/data/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.keystore
+*.sqlite*
+
+# Build products and signing material never belong in the public repository
+dist/
+releases/*.apk
+releases/*.zip
+*.jks
+*.p12
+*.pem
+*.pfx

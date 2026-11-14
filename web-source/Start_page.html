@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Экспресс-панель</title>
+<style>
+  :root {
+    --bg: #1a1a24;
+    --bg-card: #23232f;
+    --bg-item: #2a2a38;
+    --bg-item-hover: #353545;
+    --bg-input: #2a2a38;
+    --accent: #4d6bfe;
+    --accent-soft: #6b85ff;
+    --danger: #ef4444;
+    --text: #e8e8f0;
+    --text-dim: #9a9aab;
+    --border: #33334a;
+    --title-grad: linear-gradient(90deg, #6b85ff 0%, #a78bfa 50%, #6b85ff 100%);
+    --title-glow: rgba(107,133,255,.35);
+    --bg-glow-1: rgba(77,107,254,0.12);
+    --bg-glow-2: rgba(120,80,254,0.10);
+    --card-max-h: 260px;
+    --footer-bg: rgba(26,26,36,0.92);
+  }
+  html[data-theme="light"] {
+    --bg: #f4f5fb; --bg-card: #ffffff; --bg-item: #eef0f8;
+    --bg-item-hover: #e2e6f7; --bg-input: #ffffff;
+    --accent: #3b5bff; --accent-soft: #5b78ff; --danger: #dc2626;
+    --text: #1a1a24; --text-dim: #6b6b82; --border: #d8dae8;
+    --title-grad: linear-gradient(90deg, #3b5bff 0%, #7c4dff 50%, #3b5bff 100%);
+    --title-glow: rgba(59,91,255,.25);
+    --bg-glow-1: rgba(77,107,254,0.10); --bg-glow-2: rgba(160,120,255,0.10);
+    --footer-bg: rgba(244,245,251,0.92);
+  }
+  html[data-theme="space"] {
+    --bg: #07060f;
+    --bg-card: rgba(20,18,38,0.78);
+    --bg-item: rgba(38,34,68,0.7);
+    --bg-item-hover: rgba(52,46,90,0.85);
+    --bg-input: rgba(24,22,44,0.85);
+    --accent: #7c8dff; --accent-soft: #9fa9ff; --danger: #ef4444;
+    --text: #eaeaff; --text-dim: #9a9ac0; --border: rgba(90,80,160,0.35);
+    --title-grad: linear-gradient(90deg, #a5b4ff 0%, #d8b4fe 50%, #a5b4ff 100%);
+    --title-glow: rgba(160,140,255,.55);
+    --bg-glow-1: rgba(120,80,254,0.28); --bg-glow-2: rgba(80,140,255,0.20);
+    --footer-bg: rgba(7,6,15,0.88);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 20% 10%, var(--bg-glow-1), transparent 45%),
+      radial-gradient(circle at 85% 90%, var(--bg-glow-2), transparent 45%);
+    background-attachment: fixed;
+    color: var(--text);
+    min-height: 100vh;
+    padding: 60px 24px 120px;
+    display: flex; flex-direction: column; align-items: center;
+    transition: background-color .3s ease, color .3s ease;
+  }
+  #stars { display: none; position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+  html[data-theme="space"] #stars { display: block; }
+  #stars .star { position: absolute; background: #fff; border-radius: 50%; opacity: .7; animation: twinkle linear infinite; box-shadow: 0 0 4px rgba(255,255,255,.8); }
+  @keyframes twinkle { 0%,100% { opacity:.15; transform:scale(.9); } 50% { opacity:1; transform:scale(1.15); } }
+
+  /* ===== ЧАСЫ — фикс. левый верхний угол ===== */
+  .clock-widget {
+    position: fixed !important; top: 20px !important; left: 20px !important; z-index: 100 !important;
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+    box-shadow: 0 6px 24px rgba(0,0,0,.30); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    transition: background-color .3s ease, border-color .3s ease;
+  }
+  .clock-face { width: 56px; height: 56px; flex-shrink: 0; }
+  .clock-ring { fill: transparent; stroke: var(--border); stroke-width: 2; }
+  .clock-marks line { stroke: var(--text-dim); stroke-width: 1.5; stroke-linecap: round; }
+  .clock-center { fill: var(--accent); }
+  .clock-hand { stroke-width: 2.4; stroke-linecap: round; transform-origin: 50px 50px; transition: transform .1s cubic-bezier(.4,2.4,.6,1); }
+  .clock-hour   { stroke: var(--text);        stroke-width: 3; }
+  .clock-minute { stroke: var(--accent-soft); stroke-width: 2.4; }
+  .clock-second { stroke: var(--accent);      stroke-width: 1.4; }
+  .clock-info { display: flex; flex-direction: column; gap: 2px; }
+  .clock-time { font-family: 'DeepSeek', 'Segoe UI', 'Inter', monospace; font-size: 18px; font-weight: 700; letter-spacing: 1px; color: var(--text); font-variant-numeric: tabular-nums; }
+  .clock-date { font-size: 11px; color: var(--text-dim); letter-spacing: .5px; text-transform: lowercase; }
+
+  /* ===== КАЛЕНДАРЬ — фикс. правый верхний угол ===== */
+  .calendar-widget {
+    position: fixed !important; top: 20px !important; right: 20px !important; z-index: 100 !important;
+    width: 240px; padding: 12px 14px 14px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+    box-shadow: 0 6px 24px rgba(0,0,0,.30); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    transition: background-color .3s ease, border-color .3s ease;
+  }
+  .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .cal-title { font-size: 14px; font-weight: 600; color: var(--text); letter-spacing: .5px; text-transform: capitalize; user-select: none; }
+  .cal-nav { width: 22px; height: 22px; background: transparent; border: 1px solid var(--border); border-radius: 6px; color: var(--text-dim); font-size: 14px; line-height: 1; cursor: pointer; transition: all .15s ease; display: flex; align-items: center; justify-content: center; padding: 0; font-family: inherit; }
+  .cal-nav:hover { color: var(--text); border-color: var(--accent); background: var(--bg-item-hover); }
+  .cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 6px; }
+  .cal-weekdays span { text-align: center; font-size: 10px; color: var(--text-dim); letter-spacing: .5px; text-transform: uppercase; user-select: none; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .cal-day { aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--text); border-radius: 7px; cursor: default; user-select: none; transition: background .15s ease, color .15s ease; font-variant-numeric: tabular-nums; }
+  .cal-day.other { color: var(--text-dim); opacity: .35; }
+  .cal-day.weekend { color: var(--accent-soft); }
+  .cal-day.other.weekend { color: var(--text-dim); }
+  .cal-day.today { background: var(--accent); color: #fff; font-weight: 700; box-shadow: 0 0 12px var(--title-glow); }
+  .cal-today { width: 100%; margin-top: 10px; padding: 6px 10px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-dim); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; font-family: inherit; transition: all .15s ease; }
+  .cal-today:hover { color: var(--text); border-color: var(--accent-soft); background: var(--bg-item-hover); }
+
+  .title { font-family: 'DeepSeek', 'Segoe UI', 'Inter', sans-serif; font-size: 44px; font-weight: 700; letter-spacing: .5px; text-align: center; margin-bottom: 8px; background: var(--title-grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 0 40px var(--title-glow); }
+  .subtitle { color: var(--text-dim); font-size: 14px; margin-bottom: 32px; letter-spacing: 2px; text-transform: uppercase; text-align: center; }
+  .search-wrap { width: 100%; max-width: 720px; margin-bottom: 48px; }
+  .search-tabs { display: flex; gap: 6px; margin-bottom: 10px; justify-content: center; flex-wrap: wrap; }
+  .search-tab { padding: 7px 16px; font-size: 13px; background: transparent; color: var(--text-dim); border: 1px solid var(--border); border-radius: 20px; cursor: pointer; transition: all .18s ease; font-family: inherit; }
+  .search-tab:hover { color: var(--text); border-color: var(--accent-soft); }
+  .search-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 0 14px var(--title-glow); }
+  .search-row { position: relative; display: flex; justify-content: center; }
+  .search-box-wrap { position: relative; width: 100%; max-width: 720px; }
+  .search-box { width: 100%; display: flex; background: var(--bg-input); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; transition: border-color .2s ease, box-shadow .2s ease; box-shadow: 0 6px 24px rgba(0,0,0,.25); backdrop-filter: blur(8px); }
+  .search-box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--bg-glow-1), 0 8px 30px var(--title-glow); }
+  .search-box input { flex: 1; padding: 15px 18px; background: transparent; border: none; outline: none; color: var(--text); font-size: 15px; font-family: inherit; }
+  .search-box input::placeholder { color: var(--text-dim); }
+  .search-box button { background: var(--accent); color: #fff; border: none; padding: 0 22px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background .18s ease; }
+  .search-box button:hover { background: var(--accent-soft); }
+  .search-planner-btn { position: absolute; left: calc(100% + 12px); top: 50%; transform: translateY(-50%); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg-input); color: var(--text); border: 1px solid var(--border); border-radius: 14px; padding: 0 20px; text-decoration: none; height: 100%; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all .18s ease; }
+  .search-planner-btn:hover { border-color: var(--accent); color: var(--accent-soft); background: var(--bg-item-hover); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; max-width: 1200px; width: 100%; }
+  .card { position: relative; background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 22px; box-shadow: 0 8px 30px rgba(0,0,0,.30); transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background-color .3s ease; display: flex; flex-direction: column; max-height: var(--card-max-h); overflow: hidden; backdrop-filter: blur(10px); }
+  .grid.single-row .card { max-height: none; height: auto; }
+  .grid.single-row .list { overflow: visible; padding-right: 0; margin-right: 0; }
+  .grid.single-row .card::after { display: none; }
+  .card:hover { transform: translateY(-3px); border-color: var(--accent); box-shadow: 0 12px 40px var(--title-glow); }
+  .card::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 24px; background: linear-gradient(to top, var(--bg-card), transparent); pointer-events: none; opacity: 0; transition: opacity .2s ease; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; }
+  .card.has-scroll::after { opacity: 1; }
+  .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); flex-shrink: 0; }
+  .card-title { font-size: 18px; font-weight: 600; color: var(--text); letter-spacing: .5px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card-actions { display: flex; gap: 4px; opacity: 0; transition: opacity .2s; }
+  .card:hover .card-actions { opacity: 1; }
+  .icon-btn { background: transparent; border: 1px solid var(--border); color: var(--text-dim); width: 26px; height: 26px; border-radius: 6px; cursor: pointer; font-size: 13px; line-height: 1; display: flex; align-items: center; justify-content: center; transition: all .15s ease; font-family: inherit; }
+  .icon-btn:hover { color: var(--text); border-color: var(--accent); background: var(--bg-item-hover); }
+  .icon-btn.danger:hover { color: #fff; border-color: var(--danger); background: var(--danger); }
+  .list { list-style: none; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; overflow-x: hidden; flex: 1; margin-right: -10px; padding-right: 10px; scrollbar-width: thin; scrollbar-color: var(--accent) transparent; }
+  .list::-webkit-scrollbar { width: 6px; }
+  .list::-webkit-scrollbar-track { background: transparent; }
+  .list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; transition: background .15s ease; }
+  .list:hover::-webkit-scrollbar-thumb { background: var(--accent-soft); }
+  .list::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+  .list li { position: relative; cursor: grab; }
+  .list li:active { cursor: grabbing; }
+  .list li.dragging { opacity: 0.4; transform: scale(0.96); }
+  .card.drag-target { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft), 0 12px 40px var(--title-glow); transform: translateY(-2px); }
+  .card.drag-target .card-header::after { content: '⬇ Переместить сюда'; display: block; font-size: 11px; color: var(--accent); margin-top: 4px; font-weight: 500; }
+  .card { transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+  .card-header { cursor: default; position: relative; }
+  .card-title { cursor: default; }
+  .list a { display: flex; align-items: center; gap: 12px; padding: 11px 14px; background: var(--bg-item); border-radius: 10px; color: var(--text); text-decoration: none; font-size: 15px; transition: background .15s ease, transform .15s ease, color .15s ease; border: 1px solid transparent; }
+  .list a:hover { background: var(--bg-item-hover); border-color: var(--accent-soft); transform: translateX(4px); color: var(--text); }
+  .list li:hover .item-actions { opacity: 1; }
+  .item-actions { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); display: flex; gap: 4px; opacity: 0; transition: opacity .15s ease; }
+  .item-actions .icon-btn { background: var(--bg-card); }
+  .favicon { width: 20px; height: 20px; flex-shrink: 0; border-radius: 4px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; }
+  .add-group-wrap { width: 100%; max-width: 1200px; margin: 40px 0 8px; display: flex; justify-content: center; }
+  .add-group-btn { background: transparent; border: 2px dashed var(--border); color: var(--text-dim); padding: 18px 40px; border-radius: 16px; cursor: pointer; font-family: inherit; font-size: 15px; transition: all .18s ease; min-width: 280px; }
+  .add-group-btn:hover { border-color: var(--accent); color: var(--accent-soft); background: var(--bg-glow-1); }
+  .footer-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; padding: 14px 24px; background: var(--footer-bg); backdrop-filter: blur(12px); border-top: 1px solid var(--border); display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; color: var(--text-dim); font-size: 12px; letter-spacing: 1px; transition: background-color .3s ease, border-color .3s ease; }
+  .footer-bar .brand { padding-left: 4px; }
+  .footer-bar .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .footer-bar button { background: transparent; border: 1px solid var(--border); color: var(--text-dim); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 12px; transition: all .15s ease; }
+  .footer-bar button:hover { color: var(--text); border-color: var(--accent-soft); }
+  .theme-switch { display: flex; gap: 4px; padding: 3px; border: 1px solid var(--border); border-radius: 10px; }
+  .theme-switch button { padding: 5px 10px; border-radius: 7px; border: none; font-size: 14px; line-height: 1; }
+  .theme-switch button.active { background: var(--accent); color: #fff; }
+  .theme-switch button:hover { border: none; }
+  .theme-switch button:not(.active):hover { background: var(--bg-item-hover); color: var(--text); }
+  .pin-toggle { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 12px; color: var(--text-dim); letter-spacing: 1px; transition: all .15s ease; user-select: none; font-family: inherit; }
+  .pin-toggle:hover { color: var(--text); border-color: var(--accent-soft); }
+  .pin-toggle input { appearance: none; -webkit-appearance: none; width: 0; height: 0; margin: 0; position: absolute; opacity: 0; }
+  .pin-toggle .switch { position: relative; width: 30px; height: 16px; background: var(--bg-item); border: 1px solid var(--border); border-radius: 10px; transition: background .2s ease, border-color .2s ease; flex-shrink: 0; }
+  .pin-toggle .switch::after { content: ''; position: absolute; top: 1px; left: 1px; width: 12px; height: 12px; background: var(--text-dim); border-radius: 50%; transition: transform .2s ease, background .2s ease; }
+  .pin-toggle input:checked + .switch { background: var(--accent); border-color: var(--accent); }
+  .pin-toggle input:checked + .switch::after { transform: translateX(14px); background: #fff; }
+  .pin-toggle input:checked ~ .label { color: var(--text); }
+  .pin-toggle input:focus-visible + .switch { box-shadow: 0 0 0 3px var(--bg-glow-1); }
+  .modal-bg { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(10,10,18,.78); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+  .modal-bg.open { display: flex; }
+  .modal { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 26px; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,.6); animation: pop .18s ease; color: var(--text); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+  @keyframes pop { from { transform: scale(.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .modal h3 { font-size: 18px; margin-bottom: 18px; color: var(--text); font-weight: 600; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+  .field input, .field select { width: 100%; padding: 11px 14px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; font-family: inherit; outline: none; transition: border-color .15s ease; }
+  .field input:focus, .field select:focus { border-color: var(--accent); }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
+  .btn { padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer; font-family: inherit; border: 1px solid var(--border); background: transparent; color: var(--text); transition: all .15s ease; }
+  .btn:hover { background: var(--bg-item-hover); border-color: var(--accent-soft); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { background: var(--accent-soft); border-color: var(--accent-soft); }
+  .btn.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+  .btn.danger:hover { background: #dc2626; border-color: #dc2626; }
+
+.start-special-panel { width:min(100%,1100px); margin:24px auto; padding:18px 22px; border:1px solid var(--border); border-radius:18px; background:var(--bg-card); text-align:left; }
+.start-special-heading { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; }
+.start-special-heading h2 { font-size:16px; margin:0; }
+.start-special-heading button { padding:8px 12px; border:1px solid var(--border); border-radius:10px; background:var(--bg-input); color:var(--text); font:inherit; font-size:13px; cursor:pointer; }
+#startSpecialList { display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+#startSpecialList p, #startSpecialStatus { font-size:12px; color:var(--text-dim); line-height:1.6; }
+.start-special-item { display:flex; gap:10px; align-items:center; padding:8px 12px; border-left:3px solid var(--accent); border-radius:8px; background:var(--bg-input); font-size:13px; max-width:100%; }
+.start-special-item span { overflow-wrap:anywhere; }
+.start-special-item time { opacity:.7; white-space:nowrap; font-size:12px; }
+.cal-day.has-special { box-shadow:inset 0 -3px var(--accent); }
+.start-widgets, .calendar-disclosure { display:contents; }
+.calendar-disclosure > summary { display:none; }
+.search-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; }
+.search-planner-btn { position:static; transform:none; height:auto; min-height:48px; }
+.search-box-wrap, .search-box input { min-width:0; }
+.title, .subtitle, .search-wrap, .start-special-panel, .grid, .add-group-wrap { position:relative; z-index:1; }
+body.start-modal-open { overflow:hidden; }
+.modal { max-height:calc(100dvh - 40px); overflow-y:auto; }
+.card:focus-within .card-actions, .list li:focus-within .item-actions { opacity:1; }
+@media(max-width:1100px) {
+  body { padding:28px 20px 110px; }
+  .title { font-size:36px; }
+  .start-widgets { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; align-items:start; width:100%; max-width:720px; margin:0 auto 24px; order:2; position:relative; z-index:1; }
+  .title { order:0; }
+  .subtitle { order:1; margin-bottom:24px; }
+  .clock-widget, .calendar-widget { position:static !important; top:auto !important; left:auto !important; right:auto !important; z-index:auto !important; width:100%; }
+  .clock-widget { min-height:72px; }
+  .calendar-disclosure { display:block; width:100%; min-width:0; border:1px solid var(--border); border-radius:14px; background:var(--bg-card); overflow:hidden; }
+  .calendar-disclosure > summary { display:flex; align-items:center; justify-content:space-between; padding:16px; min-height:56px; color:var(--text); font-size:14px; cursor:pointer; list-style:none; }
+  .calendar-disclosure > summary::-webkit-details-marker { display:none; }
+  .calendar-disclosure > summary::after { content:'⌄'; font-size:20px; color:var(--accent-soft); }
+  .calendar-disclosure[open] > summary::after { transform:rotate(180deg); }
+  .calendar-widget { border:0; border-radius:0; box-shadow:none; background:transparent; }
+  .cal-nav { width:40px; height:40px; font-size:20px; }
+  .cal-today { min-height:40px; }
+  .search-wrap { order:3; margin-bottom:24px; }
+  .start-special-panel { order:4; }
+  .grid { order:5; }
+  .add-group-wrap { order:6; }
+  .footer-bar { order:7; }
+}
+@media(max-width:899px) {
+  body { padding:24px 16px calc(20px + env(safe-area-inset-bottom)); }
+  .title { font-size:clamp(25px,7vw,36px); }
+  .subtitle { font-size:11px; letter-spacing:1.5px; margin-bottom:20px; }
+  .search-wrap { max-width:100%; }
+  .search-tabs { gap:6px; }
+  .search-tab { min-height:40px; padding:8px 13px; }
+  .search-box input { font-size:16px; padding:14px 12px; }
+  .search-box button { padding:0 14px; min-height:48px; }
+  .search-planner-btn { padding:12px 16px; font-size:14px; }
+  .grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+  .card, .grid.single-row .card { max-height:none; height:auto; padding:16px; min-width:0; }
+  .card:hover { transform:none; }
+  .card::after { display:none; }
+  .card-header { flex-wrap:wrap; gap:10px; }
+  .card-title { font-size:16px; min-width:110px; white-space:normal; overflow-wrap:anywhere; }
+  .card-actions { opacity:1; margin-left:auto; }
+  .icon-btn { width:40px; height:40px; font-size:16px; flex-shrink:0; }
+  .list, .grid.single-row .list { overflow:visible; padding-right:0; margin-right:0; }
+  .list li { display:flex; align-items:center; gap:6px; cursor:default; min-width:0; }
+  .list a { flex:1; min-width:0; padding:12px 10px; min-height:48px; gap:8px; }
+  .list a > span:last-child { min-width:0; overflow-wrap:anywhere; }
+  .list a:hover { transform:none; }
+  .item-actions { position:static; transform:none; opacity:1; flex-shrink:0; gap:4px; }
+  .add-group-wrap { margin:24px 0; }
+  .add-group-btn { width:100%; min-width:0; min-height:48px; padding:16px; }
+  .footer-bar { position:static; width:100%; border:1px solid var(--border); border-radius:16px; padding:16px; margin-top:8px; letter-spacing:.3px; }
+  .footer-bar .controls { gap:8px; width:100%; }
+  .footer-bar button, .pin-toggle { min-height:42px; }
+  .theme-switch { min-height:48px; }
+  .start-special-panel { margin:0 auto 20px; padding:16px; }
+  .start-special-heading button { min-height:44px; }
+  .start-special-item { width:100%; }
+  .modal-bg { padding:12px; height:100dvh; }
+  .modal { padding:20px; max-height:calc(100dvh - 24px); }
+  .field input, .field select { font-size:16px; min-height:46px; }
+  .modal-actions .btn { min-height:44px; flex:1; }
+}
+@media(max-width:599px) {
+  .start-widgets { grid-template-columns:minmax(0,1fr); gap:12px; margin-bottom:20px; }
+  .clock-widget { justify-content:center; }
+  .grid { grid-template-columns:minmax(0,1fr); }
+  .search-row { grid-template-columns:minmax(0,1fr); gap:10px; }
+  .search-planner-btn { min-height:44px; }
+}
+@media(hover:none), (pointer:coarse) {
+  .card-actions, .item-actions { opacity:1; }
+}
+
+
+@media(max-width:1100px) {
+  .start-widgets { z-index:120; }
+  .calendar-disclosure { position:relative; overflow:visible; }
+  .calendar-disclosure .calendar-widget {
+    position:fixed !important;
+    top:var(--calendar-popup-top,260px) !important;
+    left:var(--calendar-popup-left,16px) !important;
+    right:auto !important;
+    width:var(--calendar-popup-width,calc(100vw - 32px));
+    max-height:var(--calendar-popup-height,calc(100dvh - 32px));
+    overflow-y:auto; overscroll-behavior:contain;
+    z-index:130 !important;
+    background:var(--bg-card); border:1px solid var(--border); border-radius:16px;
+    box-shadow:0 16px 48px rgba(0,0,0,.45);
+    animation:calendarPopupIn .16s ease both;
+  }
+  @keyframes calendarPopupIn { from {opacity:0;transform:translateY(6px)} to {opacity:1;transform:translateY(0)} }
+}
+@media(prefers-reduced-motion:reduce) { .calendar-disclosure .calendar-widget {animation:none;} }
+</style>
+</head>
+<body>
+
+  <div id="stars"></div>
+
+  <div class="start-widgets">
+  <!-- ===== ЧАСЫ — левый верх ===== -->
+  <div class="clock-widget" title="Текущее время">
+    <svg class="clock-face" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="46" class="clock-ring"/>
+      <g class="clock-marks">
+        <line x1="50" y1="8"  x2="50" y2="13"/>
+        <line x1="92" y1="50" x2="87" y2="50"/>
+        <line x1="50" y1="92" x2="50" y2="87"/>
+        <line x1="8"  y1="50" x2="13" y2="50"/>
+      </g>
+      <line id="clock-hour"   x1="50" y1="50" x2="50" y2="28" class="clock-hand clock-hour"/>
+      <line id="clock-minute" x1="50" y1="50" x2="50" y2="18" class="clock-hand clock-minute"/>
+      <line id="clock-second" x1="50" y1="50" x2="50" y2="14" class="clock-hand clock-second"/>
+      <circle cx="50" cy="50" r="1.8" class="clock-center"/>
+    </svg>
+    <div class="clock-info">
+      <div class="clock-time" id="clockTime">--:--:--</div>
+      <div class="clock-date" id="clockDate">—</div>
+    </div>
+  </div>
+
+  <details class="calendar-disclosure" id="startCalendarDisclosure" open>
+    <summary>Календарь</summary>
+  <!-- ===== КАЛЕНДАРЬ — правый верх ===== -->
+  <div class="calendar-widget">
+    <div class="cal-header">
+      <button class="cal-nav" onclick="calPrev()" title="Предыдущий месяц">‹</button>
+      <div class="cal-title" id="calTitle">—</div>
+      <button class="cal-nav" onclick="calNext()" title="Следующий месяц">›</button>
+    </div>
+    <div class="cal-weekdays">
+      <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <button class="cal-today" onclick="calToday()">Сегодня</button>
+  </div>
+
+  </details>
+  </div>
+
+  <h1 class="title">Экспресс-панель</h1>
+  <div class="subtitle">быстрый доступ</div>
+
+  <div class="search-wrap">
+    <div class="search-tabs">
+      <button class="search-tab active" data-engine="google">Google</button>
+      <button class="search-tab" data-engine="yandex">Яндекс</button>
+      <button class="search-tab" data-engine="byimage">По картинке</button>
+    </div>
+    <div class="search-row">
+      <div class="search-box-wrap">
+        <form class="search-box" id="searchForm" onsubmit="return doSearch(event)">
+          <input type="text" id="searchInput" placeholder="Введите запрос..." autocomplete="off">
+          <button type="submit" id="searchSubmit">Найти</button>
+        </form>
+      </div>
+      <a class="search-planner-btn" href="planner.html" title="Перейти в Планёр">Планёр</a>
+    </div>
+    <input type="file" id="imageInput" accept="image/*" style="display:none">
+  </div>
+
+  <section class="start-special-panel" aria-labelledby="startSpecialTitle">
+    <div class="start-special-heading"><h2 id="startSpecialTitle">Особые даты</h2><button id="startSpecialImport">Импорт из планёра · JSON</button></div>
+    <input type="file" id="startSpecialFile" accept=".json,application/json" hidden>
+    <div id="startSpecialList"></div><p id="startSpecialStatus" role="status"></p>
+  </section>
+  <div class="grid" id="grid"></div>
+
+  <div class="add-group-wrap">
+    <button class="add-group-btn" onclick="openGroupModal()">＋ Добавить группу</button>
+  </div>
+
+  <div class="footer-bar">
+    <span class="brand">VIVALDI · START PAGE</span>
+    <div class="controls">
+      <div class="theme-switch" id="themeSwitch">
+        <button data-theme="dark"  title="Тёмная тема">🌙</button>
+        <button data-theme="light" title="Светлая тема">☀️</button>
+        <button data-theme="space" title="Звёздное небо">✨</button>
+      </div>
+      <label class="pin-toggle" title="Открывать ссылки в новой вкладке — так панель остаётся под рукой">
+        <input type="checkbox" id="newTabToggle">
+        <span class="switch"></span>
+        <span class="label">Закрепить панель</span>
+      </label>
+      <button onclick="exportData()">Экспорт</button>
+      <button onclick="importData()">Импорт</button>
+      <button onclick="resetData()">Сброс</button>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="linkModal">
+    <div class="modal">
+      <h3 id="linkModalTitle">Новая ссылка</h3>
+      <div class="field">
+        <label>Название</label>
+        <input type="text" id="linkName" placeholder="Например, YouTube">
+      </div>
+      <div class="field">
+        <label>URL</label>
+        <input type="text" id="linkUrl" placeholder="https://example.com">
+      </div>
+      <div class="field">
+        <label>Группа</label>
+        <select id="linkGroup"></select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal('linkModal')">Отмена</button>
+        <button class="btn primary" onclick="saveLink()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="groupModal">
+    <div class="modal">
+      <h3 id="groupModalTitle">Новая группа</h3>
+      <div class="field">
+        <label>Название группы</label>
+        <input type="text" id="groupName" placeholder="Например, Работа">
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal('groupModal')">Отмена</button>
+        <button class="btn primary" onclick="saveGroup()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ============ ТЕМА ============ */
+const THEME_KEY = 'vivaldi_theme';
+function applyTheme(theme) {
+  if (!['dark','light','space'].includes(theme)) theme = 'dark';
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem(THEME_KEY, theme);
+  document.querySelectorAll('#themeSwitch button').forEach(b => {
+    b.classList.toggle('active', b.dataset.theme === theme);
+  });
+  if (theme === 'space') buildStars();
+}
+document.getElementById('themeSwitch').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-theme]');
+  if (!btn) return;
+  applyTheme(btn.dataset.theme);
+});
+(function initTheme() {
+  applyTheme(localStorage.getItem(THEME_KEY) || 'dark');
+})();
+
+/* ============ ЗАКРЕПИТЬ ПАНЕЛЬ ============ */
+const NEWTAB_KEY = 'vivaldi_newtab';
+let openInNewTab = localStorage.getItem(NEWTAB_KEY) === '1';
+const newTabToggle = document.getElementById('newTabToggle');
+newTabToggle.checked = openInNewTab;
+newTabToggle.addEventListener('change', () => {
+  openInNewTab = newTabToggle.checked;
+  localStorage.setItem(NEWTAB_KEY, openInNewTab ? '1' : '0');
+  render();
+});
+
+/* ============ ЗВЁЗДЫ ============ */
+function buildStars() {
+  const container = document.getElementById('stars');
+  container.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < 160; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const size = Math.random() * 2 + 0.6;
+    s.style.width  = size + 'px';
+    s.style.height = size + 'px';
+    s.style.left   = Math.random() * 100 + '%';
+    s.style.top    = Math.random() * 100 + '%';
+    s.style.animationDuration = (1.5 + Math.random() * 3.5) + 's';
+    s.style.animationDelay    = (Math.random() * 4) + 's';
+    s.style.opacity = (0.2 + Math.random() * 0.8).toFixed(2);
+    frag.appendChild(s);
+  }
+  container.appendChild(frag);
+}
+
+/* ============ ЧАСЫ ============ */
+const MONTHS_GEN = [
+  'января','февраля','марта','апреля','мая','июня',
+  'июля','августа','сентября','октября','ноября','декабря'
+];
+const WEEKDAYS_FULL = [
+  'воскресенье','понедельник','вторник','среда',
+  'четверг','пятница','суббота'
+];
+function tickClock() {
+  const now = new Date();
+  const h = now.getHours() % 12;
+  const m = now.getMinutes();
+  const s = now.getSeconds();
+  const hDeg = (h + m / 60) * 30;
+  const mDeg = (m + s / 60) * 6;
+  const sDeg = s * 6;
+  document.getElementById('clock-hour').style.transform   = `rotate(${hDeg}deg)`;
+  document.getElementById('clock-minute').style.transform = `rotate(${mDeg}deg)`;
+  document.getElementById('clock-second').style.transform = `rotate(${sDeg}deg)`;
+  const pad = n => String(n).padStart(2, '0');
+  document.getElementById('clockTime').textContent =
+    `${pad(now.getHours())}:${pad(m)}:${pad(s)}`;
+  document.getElementById('clockDate').textContent =
+    `${WEEKDAYS_FULL[now.getDay()]}, ${now.getDate()} ${MONTHS_GEN[now.getMonth()]}`;
+}
+tickClock();
+setInterval(tickClock, 1000);
+
+/* ============ КАЛЕНДАРЬ ============ */
+const MONTHS_NOM = [
+  'Январь','Февраль','Март','Апрель','Май','Июнь',
+  'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'
+];
+let calYear, calMonth;
+(function initCal() {
+  const now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth();
+})();
+
+function renderCalendar() {
+  const grid = document.getElementById('calGrid');
+  const title = document.getElementById('calTitle');
+  title.textContent = `${MONTHS_NOM[calMonth]} ${calYear}`;
+  grid.innerHTML = '';
+
+  const first = new Date(calYear, calMonth, 1);
+  const startDow = (first.getDay() + 6) % 7;
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const daysInPrev = new Date(calYear, calMonth, 0).getDate();
+
+  const today = new Date();
+  const isThisMonth = today.getFullYear() === calYear && today.getMonth() === calMonth;
+
+  const cells = [];
+  for (let i = startDow - 1; i >= 0; i--) {
+    cells.push({ day: daysInPrev - i, other: true });
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    cells.push({ day: d, other: false });
+  }
+  while (cells.length % 7 !== 0) {
+    cells.push({ day: cells.length - startDow - daysInMonth + 1, other: true });
+  }
+
+  cells.forEach((c, idx) => {
+    const el = document.createElement('div');
+    el.className = 'cal-day';
+    el.textContent = c.day;
+    const dow = idx % 7;
+    if (dow === 5 || dow === 6) el.classList.add('weekend');
+    if (c.other) el.classList.add('other');
+    if (!c.other && isThisMonth && c.day === today.getDate()) {
+      el.classList.add('today');
+    }
+    if(!c.other){const dates=startSpecialDates().filter(entry=>entry.date===startSpecialDateKey(c.day));if(dates.length){el.classList.add('has-special');el.title=dates.map(entry=>entry.name).join(', ');}}
+    grid.appendChild(el);
+  });
+}
+function calPrev() {
+  calMonth--;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  renderCalendar();
+}
+function calNext() {
+  calMonth++;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderCalendar();
+}
+function calToday() {
+  const now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth();
+  renderCalendar();
+}
+renderCalendar();
+
+/* ============ ДАННЫЕ ============ */
+const DEFAULT_DATA = {
+  groups: [
+    { id: 'g1', name: 'Досуг', links: [
+      { id: 'l1', name: 'YouTube', url: 'https://www.youtube.com' },
+      { id: 'l2', name: 'Steam',   url: 'https://store.steampowered.com' },
+      { id: 'l3', name: 'GGSel',   url: 'https://ggsel.net' }
+    ]},
+    { id: 'g2', name: 'Учёба', links: [
+      { id: 'l4', name: 'edu.gounn.ru', url: 'https://edu.gounn.ru' },
+      { id: 'l5', name: 'gdz.ru',       url: 'https://gdz.ru' },
+      { id: 'l6', name: 'reshak.ru',    url: 'https://reshak.ru' }
+    ]},
+    { id: 'g3', name: 'Нейросети', links: [
+      { id: 'l7',  name: 'DeepSeek', url: 'https://chat.deepseek.com' },
+      { id: 'l8',  name: 'ChatGPT',  url: 'https://chat.openai.com' },
+      { id: 'l9',  name: 'Gemini',   url: 'https://gemini.google.com' },
+      { id: 'l10', name: 'GigaChat', url: 'https://giga.chat' }
+    ]}
+  ]
+};
+const STORAGE_KEY = 'vivaldi_startpage_v3';
+let data = loadData();
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) { console.warn(e); }
+  return structuredClone(DEFAULT_DATA);
+}
+function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+function uid() { return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,10); }
+
+/* ============ РЕНДЕР ============ */
+function initials(name) {
+  return name.replace(/[^a-zA-Zа-яА-Я0-9]/g, '').slice(0, 2).toUpperCase() || '•';
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(s) { return escapeHtml(s); }
+
+function render() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+
+  data.groups.forEach(group => {
+    const card = document.createElement('section');
+    card.className = 'card';
+    card.dataset.groupId = group.id;
+    card.innerHTML = `
+      <div class="card-header">
+        <span class="dot"></span>
+        <h2 class="card-title">${escapeHtml(group.name)}</h2>
+        <div class="card-actions">
+          <button class="icon-btn" title="Добавить ссылку" onclick="openLinkModal(null, '${group.id}')">＋</button>
+          <button class="icon-btn" title="Переименовать" onclick="openGroupModal('${group.id}')">✎</button>
+          <button class="icon-btn danger" title="Удалить" onclick="deleteGroup('${group.id}')">✕</button>
+        </div>
+      </div>
+      <ul class="list" data-group-id="${group.id}"></ul>
+    `;
+    const list = card.querySelector('.list');
+
+    if (group.links.length === 0) {
+      const empty = document.createElement('li');
+      empty.innerHTML = `<a href="#" onclick="openLinkModal(null,'${group.id}');return false;" style="justify-content:center;color:var(--text-dim);">
+        <span class="favicon">＋</span> Добавить первую ссылку
+      </a>`;
+      list.appendChild(empty);
+    }
+
+    group.links.forEach(link => {
+      const li = document.createElement('li');
+      li.setAttribute('draggable', String(innerWidth > 899 && !matchMedia('(pointer:coarse)').matches));
+      li.dataset.linkId = link.id;
+      li.dataset.groupId = group.id;
+      li.innerHTML = `
+        <a href="${escapeAttr(link.url)}"${openInNewTab ? ' target="_blank"' : ''}>
+          <span class="favicon">${initials(link.name)}</span>
+          <span>${escapeHtml(link.name)}</span>
+        </a>
+        <div class="item-actions">
+          <button class="icon-btn" title="Изменить" onclick="openLinkModal('${link.id}','${group.id}')">✎</button>
+          <button class="icon-btn danger" title="Удалить" onclick="deleteLink('${group.id}','${link.id}')">✕</button>
+        </div>
+      `;
+      list.appendChild(li);
+    });
+
+    grid.appendChild(card);
+  });
+
+  requestAnimationFrame(updateLayout);
+}
+
+/* ============ DRAG & DROP ============ */
+let dragData = null; /* { linkId, sourceGroupId } */
+let dragTargetCard = null;
+let dragTargetLi = null;
+let dragInsertBefore = true;
+
+function initDragDrop() {
+  const grid = document.getElementById('grid');
+
+  /* dragstart — на li (делегирование через grid) */
+  grid.addEventListener('dragstart', e => {
+    const li = e.target.closest('li[draggable="true"]');
+    if (!li) return;
+    dragData = {
+      linkId: li.dataset.linkId,
+      sourceGroupId: li.dataset.groupId
+    };
+    li.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    /* Для Firefox */
+    e.dataTransfer.setData('text/plain', '');
+  });
+
+  grid.addEventListener('dragend', e => {
+    const li = e.target.closest('li[draggable="true"]');
+    if (li) li.classList.remove('dragging');
+    if (dragTargetCard) {
+      dragTargetCard.classList.remove('drag-target');
+      dragTargetCard = null;
+    }
+    if (dragTargetLi) {
+      dragTargetLi.style.borderTop = '';
+      dragTargetLi = null;
+    }
+    dragData = null;
+  });
+
+  /* dragover — определяем карточку и позицию вставки */
+  grid.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+
+    const card = e.target.closest('.card');
+    if (!card) return;
+
+    /* Подсвечиваем карточку под курсором (межгрупповое перемещение) */
+    if (dragTargetCard && dragTargetCard !== card) {
+      dragTargetCard.classList.remove('drag-target');
+    }
+    if (card.dataset.groupId !== dragData?.sourceGroupId) {
+      card.classList.add('drag-target');
+      dragTargetCard = card;
+    }
+
+    /* Определяем li под курсором для сортировки внутри группы */
+    const targetLi = e.target.closest('li[draggable="true"]');
+    const sameGroup = targetLi && targetLi.dataset.groupId === dragData?.sourceGroupId;
+
+    if (sameGroup && targetLi !== dragTargetLi) {
+      if (dragTargetLi) dragTargetLi.style.borderTop = '';
+      const rect = targetLi.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      dragInsertBefore = e.clientY < midY;
+      targetLi.style.borderTop = dragInsertBefore
+        ? '2px solid var(--accent)'
+        : '';
+      dragTargetLi = targetLi;
+    } else if (dragTargetLi && !sameGroup) {
+      dragTargetLi.style.borderTop = '';
+      dragTargetLi = null;
+    }
+  });
+
+  /* drop */
+  grid.addEventListener('drop', e => {
+    const card = e.target.closest('.card');
+    if (!card || !dragData) return;
+    e.preventDefault();
+
+    const targetGid = card.dataset.groupId;
+    if (!targetGid) return;
+
+    const srcGroup = data.groups.find(g => g.id === dragData.sourceGroupId);
+    const linkIdx = srcGroup.links.findIndex(l => l.id === dragData.linkId);
+    if (linkIdx === -1) return;
+    const [link] = srcGroup.links.splice(linkIdx, 1);
+
+    /* Если та же группа — сортировка внутри */
+    if (targetGid === dragData.sourceGroupId && dragTargetLi) {
+      const tgtGroup = srcGroup;
+      const targetLinkIdx = tgtGroup.links.findIndex(
+        l => l.id === dragTargetLi.dataset.linkId
+      );
+      const insertIdx = dragInsertBefore
+        ? targetLinkIdx
+        : targetLinkIdx + 1;
+      tgtGroup.links.splice(insertIdx, 0, link);
+    } else {
+      /* Иначе — перемещение в другую группу */
+      const tgtGroup = data.groups.find(g => g.id === targetGid);
+      if (tgtGroup) tgtGroup.links.push(link);
+    }
+
+    saveData();
+    render();
+  });
+}
+
+/* ============ АДАПТИВНАЯ ВЫСОТА ============ */
+function updateLayout() {
+  document.querySelectorAll('#grid li[data-link-id]').forEach(item=>item.draggable=innerWidth>899&&!matchMedia('(pointer:coarse)').matches);
+  const grid = document.getElementById('grid');
+  const cards = grid.querySelectorAll('.card');
+  if (!cards.length) {
+    grid.classList.remove('single-row');
+    return;
+  }
+
+  grid.classList.add('single-row');
+  void grid.offsetHeight;
+
+  const tops = new Set();
+  cards.forEach(c => {
+    tops.add(Math.round(c.getBoundingClientRect().top));
+  });
+  const rowCount = tops.size;
+
+  if (rowCount === 1) {
+    grid.classList.add('single-row');
+  } else {
+    grid.classList.remove('single-row');
+  }
+
+  void grid.offsetHeight;
+  document.querySelectorAll('.card .list').forEach(list => {
+    const card = list.closest('.card');
+    if (!card) return;
+    if (list.scrollHeight > list.clientHeight + 2) {
+      card.classList.add('has-scroll');
+    } else {
+      card.classList.remove('has-scroll');
+    }
+  });
+}
+window.addEventListener('resize', () => {
+  clearTimeout(window.__layoutT);
+  window.__layoutT = setTimeout(updateLayout, 100);
+});
+
+/* ============ МОДАЛКА: ССЫЛКА ============ */
+let editingLinkId = null;
+let editingLinkGroupId = null;
+
+function openLinkModal(linkId, groupId) {
+  editingLinkId = linkId;
+  editingLinkGroupId = groupId;
+  const modal = document.getElementById('linkModal');
+  const title = document.getElementById('linkModalTitle');
+  const nameI = document.getElementById('linkName');
+  const urlI = document.getElementById('linkUrl');
+  const groupSel = document.getElementById('linkGroup');
+
+  groupSel.innerHTML = data.groups.map(g =>
+    `<option value="${g.id}">${escapeHtml(g.name)}</option>`
+  ).join('');
+
+  if (linkId) {
+    title.textContent = 'Изменить ссылку';
+    const g = data.groups.find(x => x.id === groupId);
+    const l = g.links.find(x => x.id === linkId);
+    nameI.value = l.name;
+    urlI.value = l.url;
+    groupSel.value = groupId;
+  } else {
+    title.textContent = 'Новая ссылка';
+    nameI.value = '';
+    urlI.value = '';
+    groupSel.value = groupId || data.groups[0]?.id || '';
+  }
+  modal.classList.add('open');
+  document.body.classList.add('start-modal-open');
+  setTimeout(() => nameI.focus(), 50);
+}
+
+function saveLink() {
+  const name = document.getElementById('linkName').value.trim();
+  let url = document.getElementById('linkUrl').value.trim();
+  const groupId = document.getElementById('linkGroup').value;
+
+  if (!name || !url) { alert('Заполните название и URL'); return; }
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+
+  if (editingLinkId) {
+    const oldG = data.groups.find(x => x.id === editingLinkGroupId);
+    const idx = oldG.links.findIndex(x => x.id === editingLinkId);
+    const [link] = oldG.links.splice(idx, 1);
+    link.name = name; link.url = url;
+    const newG = data.groups.find(x => x.id === groupId);
+    newG.links.push(link);
+  } else {
+    const g = data.groups.find(x => x.id === groupId);
+    g.links.push({ id: uid(), name, url });
+  }
+  saveData(); render(); closeModal('linkModal');
+}
+
+function deleteLink(groupId, linkId) {
+  if (!confirm('Удалить ссылку?')) return;
+  const g = data.groups.find(x => x.id === groupId);
+  g.links = g.links.filter(l => l.id !== linkId);
+  saveData(); render();
+}
+
+/* ============ МОДАЛКА: ГРУППА ============ */
+let editingGroupId = null;
+
+function openGroupModal(groupId) {
+  editingGroupId = groupId || null;
+  const modal = document.getElementById('groupModal');
+  const title = document.getElementById('groupModalTitle');
+  const input = document.getElementById('groupName');
+  if (groupId) {
+    title.textContent = 'Переименовать группу';
+    input.value = data.groups.find(g => g.id === groupId).name;
+  } else {
+    title.textContent = 'Новая группа';
+    input.value = '';
+  }
+  modal.classList.add('open');
+  document.body.classList.add('start-modal-open');
+  setTimeout(() => input.focus(), 50);
+}
+
+function saveGroup() {
+  const name = document.getElementById('groupName').value.trim();
+  if (!name) { alert('Введите название'); return; }
+  if (editingGroupId) {
+    data.groups.find(g => g.id === editingGroupId).name = name;
+  } else {
+    data.groups.push({ id: uid(), name, links: [] });
+  }
+  saveData(); render(); closeModal('groupModal');
+}
+
+function deleteGroup(groupId) {
+  const g = data.groups.find(x => x.id === groupId);
+  if (!confirm(`Удалить группу "${g.name}" со всеми ссылками?`)) return;
+  data.groups = data.groups.filter(x => x.id !== groupId);
+  saveData(); render();
+}
+
+/* ============ МОДАЛКИ — ОБЩЕЕ ============ */
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  if(!document.querySelector('.modal-bg.open'))document.body.classList.remove('start-modal-open');
+  editingLinkId = null;
+  editingLinkGroupId = null;
+  editingGroupId = null;
+}
+document.querySelectorAll('.modal-bg').forEach(bg => {
+  bg.addEventListener('click', e => { if (e.target === bg) closeModal(bg.id); });
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-bg.open').forEach(m => closeModal(m.id));
+  }
+});
+
+/* ============ ПОИСК ============ */
+const engines = {
+  google:  { url: 'https://www.google.com/search?q=',  mode: 'text' },
+  yandex:  { url: 'https://yandex.ru/search/?text=',   mode: 'text' },
+  byimage: { url: 'https://lens.google.com/uploadbyurl?url=', mode: 'image' }
+};
+let currentEngine = 'google';
+
+document.querySelectorAll('.search-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.search-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentEngine = tab.dataset.engine;
+    const input = document.getElementById('searchInput');
+    const submit = document.getElementById('searchSubmit');
+    if (engines[currentEngine].mode === 'image') {
+      input.placeholder = 'Вставьте URL картинки или нажмите «Загрузить»';
+      input.value = '';
+      submit.textContent = 'Загрузить';
+      input.focus();
+    } else {
+      input.placeholder = 'Введите запрос...';
+      submit.textContent = 'Найти';
+      input.focus();
+    }
+  });
+});
+
+function doSearch(e) {
+  e.preventDefault();
+  const q = document.getElementById('searchInput').value.trim();
+  const eng = engines[currentEngine];
+  if (eng.mode === 'image') {
+    if (!q) { document.getElementById('imageInput').click(); return false; }
+    window.location.href = eng.url + encodeURIComponent(q);
+    return false;
+  }
+  if (!q) return false;
+  window.location.href = eng.url + encodeURIComponent(q);
+  return false;
+}
+
+document.getElementById('imageInput').addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  const form = document.createElement('form');
+  form.action = 'https://lens.google.com/v3/upload';
+  form.method = 'POST';
+  form.enctype = 'multipart/form-data';
+  form.target = '_blank';
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.name = 'encoded_image';
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  input.files = dt.files;
+  form.appendChild(input);
+  document.body.appendChild(form);
+  form.submit();
+  document.body.removeChild(form);
+  this.value = '';
+});
+
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    document.getElementById('searchInput').focus();
+  }
+});
+
+/* ============ ЭКСПОРТ / ИМПОРТ / СБРОС ============ */
+function exportData() {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'startpage-backup.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importData() {
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = 'application/json';
+  inp.onchange = () => {
+    const f = inp.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result);
+        if (!parsed.groups) throw new Error('Неверный формат');
+        data = parsed;
+        saveData(); render();
+        alert('Импорт выполнен');
+      } catch (err) { alert('Ошибка: ' + err.message); }
+    };
+    reader.readAsText(f);
+  };
+  inp.click();
+}
+
+function resetData() {
+  if (!confirm('Сбросить всё к стандартному виду? Ваши ссылки будут потеряны.')) return;
+  data = structuredClone(DEFAULT_DATA);
+  saveData(); render();
+}
+
+function startSpecialDates() {
+  try { const value=JSON.parse(localStorage.getItem('startpage_special_dates_v1')||'[]');return Array.isArray(value)?value:[]; } catch(_){return [];}
+}
+function startSpecialDateKey(day) {return `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;}
+function renderStartSpecialDates() {
+  const list=document.getElementById('startSpecialList'),today=new Date(),todayKey=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const entries=startSpecialDates().filter(entry=>entry.date>=todayKey).sort((a,b)=>a.date.localeCompare(b.date));
+  list.innerHTML=entries.length?entries.slice(0,8).map(entry=>`<div class="start-special-item"><time>${escapeHtml(entry.date)}</time><span>${escapeHtml(entry.name)}</span></div>`).join(''):'<p>Нет предстоящих особых дат. Импортируйте JSON из настроек планёра.</p>';
+}
+function initStartSpecialDates() {
+  document.getElementById('startSpecialImport').onclick=()=>document.getElementById('startSpecialFile').click();
+  document.getElementById('startSpecialFile').onchange=async event=>{
+    const file=event.target.files[0];if(!file)return;
+    const status=document.getElementById('startSpecialStatus');
+    try {
+      if(file.size>1024*1024)throw new Error('Файл слишком большой.');
+      const value=JSON.parse(await file.text());
+      if(!Array.isArray(value)||value.some(entry=>!entry||typeof entry.name!=='string'||typeof entry.date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(entry.date)||Number.isNaN(new Date(entry.date+'T12:00:00').getTime())||!entry.name.trim()))throw new Error('Нужен JSON особых дат из планёра.');
+      const entries=value.map(entry=>({date:entry.date,name:entry.name,color:/^#[0-9a-f]{6}$/i.test(entry.color||'')?entry.color:'#a78bfa'}));
+      localStorage.setItem('startpage_special_dates_v1',JSON.stringify(entries));renderStartSpecialDates();renderCalendar();status.textContent=`Импортировано дат: ${entries.length}.`;
+    }catch(error){status.textContent='Импорт не выполнен: '+error.message;}
+    finally{event.target.value='';}
+  };
+  renderStartSpecialDates();
+}
+
+/* ============ СТАРТ ============ */
+render();
+initDragDrop();
+initStartSpecialDates();
+const compactStartLayout=matchMedia('(max-width:1100px)');
+function syncStartCalendar() { document.getElementById('startCalendarDisclosure').open=!compactStartLayout.matches; }
+const startCalendar=document.getElementById('startCalendarDisclosure');
+const calendarSummary=startCalendar.querySelector('summary');
+const calendarPopup=startCalendar.querySelector('.calendar-widget');
+calendarPopup.id='startCalendarPopup';calendarSummary.setAttribute('aria-controls','startCalendarPopup');
+function positionStartCalendar(){
+  if(!compactStartLayout.matches||!startCalendar.open)return;
+  const anchor=calendarSummary.getBoundingClientRect(),gap=10;
+  const width=Math.min(anchor.width,innerWidth-gap*2);
+  const left=Math.max(gap,Math.min(anchor.left,innerWidth-width-gap));
+  const below=innerHeight-anchor.bottom-gap*2,above=anchor.top-gap*2;
+  const useAbove=below<300&&above>below;
+  const available=Math.max(80,useAbove?above:below);
+  startCalendar.style.setProperty('--calendar-popup-left',left+'px');
+  startCalendar.style.setProperty('--calendar-popup-width',width+'px');
+  startCalendar.style.setProperty('--calendar-popup-height',Math.min(480,available)+'px');
+  const top=useAbove?Math.max(gap,anchor.top-gap-Math.min(calendarPopup.scrollHeight,480,available)):Math.max(gap,anchor.bottom+gap);
+  startCalendar.style.setProperty('--calendar-popup-top',Math.min(top,innerHeight-80-gap)+'px');
+}
+startCalendar.addEventListener('toggle',()=>{calendarSummary.setAttribute('aria-expanded',String(startCalendar.open));positionStartCalendar();});
+calendarSummary.addEventListener('click',event=>{if(compactStartLayout.matches&&!startCalendar.open){event.preventDefault();startCalendar.open=true;positionStartCalendar();requestAnimationFrame(positionStartCalendar);}},{capture:true});
+document.addEventListener('pointerdown',event=>{if(compactStartLayout.matches&&startCalendar.open&&!startCalendar.contains(event.target))startCalendar.open=false;});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&compactStartLayout.matches&&startCalendar.open){startCalendar.open=false;calendarSummary.focus({preventScroll:true});event.preventDefault();}});
+window.addEventListener('resize',positionStartCalendar);
+window.addEventListener('scroll',()=>{if(compactStartLayout.matches&&startCalendar.open)positionStartCalendar();},{passive:true});
+compactStartLayout.addEventListener('change',syncStartCalendar);
+syncStartCalendar();
+if(!matchMedia('(max-width:899px)').matches&&!matchMedia('(pointer:coarse)').matches)document.getElementById('searchInput').focus({preventScroll:true});
+</script>
+
+</body>
+</html>
