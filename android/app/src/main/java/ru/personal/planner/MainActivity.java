@@ -34,7 +34,7 @@ public class MainActivity extends Activity {
         LinearLayout toolbar=new LinearLayout(this); toolbar.setGravity(Gravity.CENTER_VERTICAL); toolbar.setBackgroundColor(Color.rgb(18,18,28));
         addTab(toolbar,"Temoraxis",()->load("planner.html"));addTab(toolbar,"Экспресс-панель",()->load("Start_page.html"));
         Button menu=new Button(this);menu.setText("⋮");menu.setTextColor(Color.WHITE);menu.setBackgroundColor(Color.TRANSPARENT);menu.setContentDescription("Разрешения приложения");
-        menu.setOnClickListener(v->{PopupMenu popup=new PopupMenu(this,menu);popup.getMenu().add("Разрешить уведомления").setOnMenuItemClickListener(item->{requestNotifications();return true;});popup.getMenu().add("Точные напоминания").setOnMenuItemClickListener(item->{requestExactAlarms();return true;});popup.getMenu().add("О приложении").setOnMenuItemClickListener(item->{new AlertDialog.Builder(this).setTitle("Temoraxis · 0.1.4").setMessage("Локальные задачи и системные напоминания. Синхронизация подключается в настройках после размещения сервера. Фоновые напоминания используют системный звук Android.").setPositiveButton("Понятно",null).show();return true;});popup.show();});
+        menu.setOnClickListener(v->{PopupMenu popup=new PopupMenu(this,menu);popup.getMenu().add("Разрешить уведомления").setOnMenuItemClickListener(item->{requestNotifications();return true;});popup.getMenu().add("Точные напоминания").setOnMenuItemClickListener(item->{requestExactAlarms();return true;});popup.getMenu().add("О приложении").setOnMenuItemClickListener(item->{new AlertDialog.Builder(this).setTitle("Temoraxis · 0.1.5").setMessage("Локальные задачи и системные напоминания. Синхронизация подключается в настройках после размещения сервера. Фоновые напоминания используют системный звук Android.").setPositiveButton("Понятно",null).show();return true;});popup.show();});
         toolbar.addView(menu,new LinearLayout.LayoutParams(dp(48),dp(44)));root.addView(toolbar);
         web=new WebView(this);web.setBackgroundColor(Color.rgb(10,10,18));
         WebSettings settings=web.getSettings();settings.setJavaScriptEnabled(true);settings.setDomStorageEnabled(true);settings.setAllowFileAccess(false);settings.setAllowContentAccess(true);settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);settings.setSupportMultipleWindows(false);
@@ -71,17 +71,36 @@ public class MainActivity extends Activity {
         });
         root.addView(web,new LinearLayout.LayoutParams(-1,0,1));setContentView(root);
         if(saved==null||web.restoreState(saved)==null)load("planner.html");
+        if(saved==null)web.post(()->offerNotificationPermission());
         if(Build.VERSION.SDK_INT>=33)getOnBackInvokedDispatcher().registerOnBackInvokedCallback(0,()->handleBack());
     }
     int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
     void addTab(LinearLayout bar,String text,Runnable action){Button button=new Button(this);button.setText(text);button.setTextSize(12);button.setTextColor(Color.rgb(185,195,255));button.setAllCaps(false);button.setBackgroundColor(Color.TRANSPARENT);button.setOnClickListener(v->action.run());bar.addView(button,new LinearLayout.LayoutParams(0,dp(44),1));}
     void load(String path){web.loadUrl(ORIGIN+"/"+path);}
     static WebResourceResponse response(String type,String text,int status){return new WebResourceResponse(type,"UTF-8",status,status==404?"Not Found":"Forbidden",Collections.emptyMap(),new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8)));}
-    void requestNotifications(){if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},502);else if(!((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).areNotificationsEnabled())startActivity(new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE,getPackageName()));else Toast.makeText(this,"Уведомления разрешены",Toast.LENGTH_SHORT).show();}
+    boolean notificationsEnabled(){return ((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).areNotificationsEnabled();}
+    void openNotificationSettings(){startActivity(new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE,getPackageName()));}
+    void offerNotificationPermission(){
+        SharedPreferences prefs=getSharedPreferences("permission-prompts",MODE_PRIVATE);
+        if(notificationsEnabled()||prefs.getBoolean("notification-intro-shown",false))return;
+        prefs.edit().putBoolean("notification-intro-shown",true).apply();
+        new AlertDialog.Builder(this).setTitle("Разрешить уведомления?")
+            .setMessage("Temoraxis отправляет напоминания о задачах, даже когда приложение свёрнуто. Разрешите уведомления, чтобы видеть эти напоминания.")
+            .setPositiveButton("Разрешить",(d,w)->requestNotifications()).setNegativeButton("Позже",null).show();
+    }
+    void requestNotifications(){
+        SharedPreferences prefs=getSharedPreferences("permission-prompts",MODE_PRIVATE);
+        if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED){
+            if(prefs.getBoolean("notification-requested",false)&&!shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)){
+                new AlertDialog.Builder(this).setTitle("Уведомления отключены").setMessage("Android больше не показывает запрос. Разрешите уведомления для Temoraxis в настройках приложения.").setPositiveButton("Открыть настройки",(d,w)->openNotificationSettings()).setNegativeButton("Позже",null).show();
+            }else{prefs.edit().putBoolean("notification-requested",true).apply();requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},502);}
+        }else if(!notificationsEnabled())openNotificationSettings();
+        else Toast.makeText(this,"Уведомления разрешены",Toast.LENGTH_SHORT).show();
+    }
     void requestExactAlarms(){if(Build.VERSION.SDK_INT>=31&&!((AlarmManager)getSystemService(ALARM_SERVICE)).canScheduleExactAlarms())startActivity(new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,Uri.parse("package:"+getPackageName())));else Toast.makeText(this,"Точные напоминания доступны",Toast.LENGTH_SHORT).show();}
     void injectNativeState(){if(web==null)return;if(pendingTaskId!=null && web.getUrl()!=null && web.getUrl().endsWith("planner.html")){String id=pendingTaskId,date=pendingTaskDate;web.evaluateJavascript("(function(){if(typeof navigateToTasks!=='function')return false;navigateToTasks("+JSONObject.quote(id)+","+JSONObject.quote(date)+");return true;})()",result->{if("true".equals(result)&&id.equals(pendingTaskId)){pendingTaskId=null;pendingTaskDate=null;}});}String pending=AlarmScheduler.pendingCompletions(this).toString();web.evaluateJavascript("window.dispatchEvent(new CustomEvent('planner-native-resume',{detail:"+pending+"}));",null);}
     @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);pendingTaskId=intent.getStringExtra("taskId");pendingTaskDate=intent.getStringExtra("date");if(pendingTaskId!=null)load("planner.html");}
-    @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] results){super.onRequestPermissionsResult(request,permissions,results);if(request==502){String config=AlarmScheduler.prefs(this).getString(AlarmScheduler.CONFIG,null);if(config!=null)AlarmScheduler.reconcile(this,config);}}
+    @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] results){super.onRequestPermissionsResult(request,permissions,results);if(request==502){String config=AlarmScheduler.prefs(this).getString(AlarmScheduler.CONFIG,null);if(config!=null)AlarmScheduler.reconcile(this,config);injectNativeState();if(results.length>0&&results[0]!=PackageManager.PERMISSION_GRANTED)Toast.makeText(this,"Уведомления отключены. Их можно разрешить в меню ⋮",Toast.LENGTH_LONG).show();}}
     @Override protected void onResume(){super.onResume();String config=AlarmScheduler.prefs(this).getString(AlarmScheduler.CONFIG,null);if(config!=null)AlarmScheduler.reconcile(this,config);if(web!=null){web.onResume();injectNativeState();}}
     @Override protected void onPause(){if(web!=null)web.onPause();super.onPause();}
     @Override protected void onSaveInstanceState(Bundle state){web.saveState(state);super.onSaveInstanceState(state);}
@@ -94,7 +113,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void scheduleReminders(String json){if(json.length()>5*1024*1024)return;AlarmScheduler.reconcile(MainActivity.this,json);}
         @JavascriptInterface public void requestNotifications(){runOnUiThread(()->MainActivity.this.requestNotifications());}
         @JavascriptInterface public void requestExactAlarms(){runOnUiThread(()->MainActivity.this.requestExactAlarms());}
-        @JavascriptInterface public String notificationState(){boolean notifications=Build.VERSION.SDK_INT<33||checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)==PackageManager.PERMISSION_GRANTED;boolean exact=Build.VERSION.SDK_INT<31||((AlarmManager)getSystemService(ALARM_SERVICE)).canScheduleExactAlarms();try{return new JSONObject().put("notifications",notifications).put("exact",exact).toString();}catch(JSONException e){return "{}";}}
+        @JavascriptInterface public String notificationState(){boolean notifications=notificationsEnabled();boolean exact=Build.VERSION.SDK_INT<31||((AlarmManager)getSystemService(ALARM_SERVICE)).canScheduleExactAlarms();try{return new JSONObject().put("notifications",notifications).put("exact",exact).toString();}catch(JSONException e){return "{}";}}
         @JavascriptInterface public String pendingCompletions(){return AlarmScheduler.pendingCompletions(MainActivity.this).toString();}
         @JavascriptInterface public void acknowledgeCompletion(String key){AlarmScheduler.acknowledge(MainActivity.this,key);}
     }

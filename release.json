@@ -1,5 +1,5 @@
 {
-  "version": "0.1.4",
+  "version": "0.1.5",
   "date": "2026-11-14",
   "androidPackage": "ru.personal.planner",
   "minAndroid": 8,
@@ -8,6 +8,6 @@
   "apkSha256": null,
   "signing": "development",
   "serverDeployed": false,
-  "versionCode": 5,
-  "changeNotes": "Новое название — Temoraxis. Сохранены подпись приложения, задачи и настройки."
+  "versionCode": 6,
+  "changeNotes": "Запрос разрешения на уведомления при первом запуске. Исправлено отображение состояния разрешений Android."
 }
