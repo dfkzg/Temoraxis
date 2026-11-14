@@ -5,6 +5,27 @@ import java.util.*;
 
 /** Pure scheduling rules; tested on the JVM independently from Android services. */
 public final class ReminderCalculator {
+ /** Reset delivery marks only when a task's schedule is deliberately edited. */
+ public static String scheduleSignature(JSONObject task){
+  JSONObject r=task.optJSONObject("reminder");if(r==null)r=new JSONObject();
+  TreeSet<Integer> days=new TreeSet<>();JSONArray raw=task.optJSONArray("repeatDays");if(raw!=null)for(int i=0;i<raw.length();i++)days.add(raw.optInt(i));
+  return task.optString("date")+"|"+task.optString("time")+"|"+task.optString("repeat")+"|"+days+"|"+r.optBoolean("enabled")+"|"+r.optInt("minutesBefore",5)+"|"+r.optBoolean("repeatUntilDone")+"|"+r.optInt("repeatInterval",5);
+ }
+ static void clearTask(JSONObject marks,String id){
+  ArrayList<String> remove=new ArrayList<>();Iterator<String> keys=marks.keys();while(keys.hasNext()){String key=keys.next();if(key.startsWith(id+"|"))remove.add(key);}for(String key:remove)marks.remove(key);
+ }
+ public static void resetForEdits(JSONObject previous,JSONObject config,JSONObject sent,JSONObject dismissed,JSONObject done){
+  JSONArray oldTasks=previous.optJSONArray("tasks"),tasks=config.optJSONArray("tasks");if(oldTasks==null||tasks==null)return;
+  Map<String,JSONObject> old=new HashMap<>();for(int i=0;i<oldTasks.length();i++){JSONObject t=oldTasks.optJSONObject(i);if(t!=null)old.put(t.optString("id"),t);}
+  for(int i=0;i<tasks.length();i++){
+   JSONObject task=tasks.optJSONObject(i);if(task==null)continue;String id=task.optString("id");JSONObject before=old.get(id);if(before==null)continue;
+   boolean reopened="done".equals(before.optString("status"))&&!"done".equals(task.optString("status"));
+   if(!scheduleSignature(before).equals(scheduleSignature(task))||reopened){clearTask(sent,id);clearTask(dismissed,id);}
+   if(reopened)clearTask(done,id);
+   JSONObject occurrences=before.optJSONObject("occurrences"),current=task.optJSONObject("occurrences");
+   if(occurrences!=null){Iterator<String> dates=occurrences.keys();while(dates.hasNext()){String date=dates.next();JSONObject prev=occurrences.optJSONObject(date),next=current==null?null:current.optJSONObject(date);if(prev!=null&&"done".equals(prev.optString("status"))&&(next==null||!"done".equals(next.optString("status")))){String key=id+"|"+date;sent.remove(key);dismissed.remove(key);done.remove(key);}}}
+  }
+ }
  public static JSONObject next(JSONObject task,ZoneId zone,long now,JSONObject sent,JSONObject dismissed,JSONObject done) throws JSONException {
   if(task==null||task.optBoolean("deleted"))return null;
   String id=task.optString("id"),time=task.optString("time");

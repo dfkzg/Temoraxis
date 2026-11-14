@@ -20,6 +20,8 @@ public class MainActivity extends Activity {
     static final String ORIGIN="https://appassets.androidplatform.net";
     WebView web;
     PermissionSetup permissionSetup;
+    boolean enableRemindersOnLoad;
+    boolean foreground;
     ValueCallback<Uri[]> fileCallback;
     byte[] pendingExport;
     String pendingTaskId,pendingTaskDate;
@@ -36,7 +38,7 @@ public class MainActivity extends Activity {
         LinearLayout toolbar=new LinearLayout(this); toolbar.setGravity(Gravity.CENTER_VERTICAL); toolbar.setBackgroundColor(Color.rgb(18,18,28));
         addTab(toolbar,"Temoraxis",()->load("planner.html"));addTab(toolbar,"Экспресс-панель",()->load("Start_page.html"));
         Button menu=new Button(this);menu.setText("⋮");menu.setTextColor(Color.WHITE);menu.setBackgroundColor(Color.TRANSPARENT);menu.setContentDescription("Разрешения приложения");
-        menu.setOnClickListener(v->{PopupMenu popup=new PopupMenu(this,menu);popup.getMenu().add("Разрешить уведомления").setOnMenuItemClickListener(item->{requestNotifications();return true;});popup.getMenu().add("Точные напоминания").setOnMenuItemClickListener(item->{requestExactAlarms();return true;});popup.getMenu().add("Разрешения и работа в фоне").setOnMenuItemClickListener(item->{permissionSetup.start();return true;});popup.getMenu().add("О приложении").setOnMenuItemClickListener(item->{new AlertDialog.Builder(this).setTitle("Temoraxis · 0.1.8").setMessage("Локальные задачи и системные напоминания. Синхронизация подключается в настройках после размещения сервера. Фоновые напоминания используют системный звук будильника Android и его громкость. Сигнал звучит до остановки или в течение минуты.").setPositiveButton("Понятно",null).show();return true;});popup.show();});
+        menu.setOnClickListener(v->{PopupMenu popup=new PopupMenu(this,menu);popup.getMenu().add("Разрешить уведомления").setOnMenuItemClickListener(item->{requestNotifications();return true;});popup.getMenu().add("Точные напоминания").setOnMenuItemClickListener(item->{requestExactAlarms();return true;});popup.getMenu().add("Разрешения и работа в фоне").setOnMenuItemClickListener(item->{permissionSetup.start();return true;});popup.getMenu().add("Тест системы").setOnMenuItemClickListener(item->{SystemTest.open(this);return true;});popup.getMenu().add("Проверка будильника").setOnMenuItemClickListener(item->{showAlarmDiagnostics();return true;});popup.getMenu().add("О приложении").setOnMenuItemClickListener(item->{new AlertDialog.Builder(this).setTitle("Temoraxis · 0.1.9").setMessage("Локальные задачи и системные напоминания. Синхронизация подключается в настройках после размещения сервера. Фоновые напоминания используют системный звук будильника Android и его громкость. Сигнал звучит до остановки или в течение минуты.").setPositiveButton("Понятно",null).show();return true;});popup.show();});
         toolbar.addView(menu,new LinearLayout.LayoutParams(dp(48),dp(44)));root.addView(toolbar);
         web=new WebView(this);web.setBackgroundColor(Color.rgb(10,10,18));
         WebSettings settings=web.getSettings();settings.setJavaScriptEnabled(true);settings.setDomStorageEnabled(true);settings.setAllowFileAccess(false);settings.setAllowContentAccess(true);settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);settings.setSupportMultipleWindows(false);
@@ -59,7 +61,7 @@ public class MainActivity extends Activity {
                 if(request.isForMainFrame()&&("https".equals(uri.getScheme())||"http".equals(uri.getScheme()))){try{startActivity(new Intent(Intent.ACTION_VIEW,uri));}catch(ActivityNotFoundException e){Toast.makeText(MainActivity.this,"Нет приложения для этой ссылки",Toast.LENGTH_SHORT).show();}}
                 return true;
             }
-            @Override public void onPageFinished(WebView view,String url){injectNativeState();}
+            @Override public void onPageFinished(WebView view,String url){injectNativeState();if(enableRemindersOnLoad&&url.endsWith("planner.html")){enableRemindersOnLoad=false;enablePlannerReminders();}}
         });
         web.setWebChromeClient(new WebChromeClient(){
             @Override public boolean onShowFileChooser(WebView view,ValueCallback<Uri[]> callback,FileChooserParams params){
@@ -92,11 +94,20 @@ public class MainActivity extends Activity {
         else Toast.makeText(this,"Уведомления разрешены",Toast.LENGTH_SHORT).show();
     }
     void requestExactAlarms(){if(Build.VERSION.SDK_INT>=31&&!((AlarmManager)getSystemService(ALARM_SERVICE)).canScheduleExactAlarms())startActivity(new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,Uri.parse("package:"+getPackageName())));else Toast.makeText(this,"Точные напоминания доступны",Toast.LENGTH_SHORT).show();}
+    void enablePlannerReminders(){
+        web.evaluateJavascript("(function(){if(typeof savePlannerSettings==='function'){savePlannerSettings({notifications:true});renderSettings();return true;}return false;})()",result->Toast.makeText(this,"true".equals(result)?"Напоминания включены":"Откройте Настройки и включите напоминания",Toast.LENGTH_LONG).show());
+    }
+    void showAlarmDiagnostics(){
+        new AlertDialog.Builder(this).setTitle("Проверка будильника").setMessage(AlarmScheduler.diagnostics(this))
+            .setPositiveButton("Тест через 15 секунд",(d,w)->{try{AlarmScheduler.test(this);Toast.makeText(this,"Тест назначен через 15 секунд. Можно выключить экран.",Toast.LENGTH_LONG).show();}catch(RuntimeException e){new AlertDialog.Builder(this).setMessage("Не удалось назначить тест: "+e).setPositiveButton("Понятно",null).show();}})
+            .setNeutralButton(AlarmScheduler.object(this,AlarmScheduler.CONFIG).optBoolean("enabled")?"Разрешения":"Включить напоминания",(d,w)->{if(AlarmScheduler.object(this,AlarmScheduler.CONFIG).optBoolean("enabled"))permissionSetup.start();else {if(web.getUrl()!=null&&web.getUrl().endsWith("planner.html")&&web.getProgress()==100)enablePlannerReminders();else {enableRemindersOnLoad=true;load("planner.html");}}}).setNegativeButton("Закрыть",null).show();
+    }
     void injectNativeState(){if(web==null)return;if(pendingTaskId!=null && web.getUrl()!=null && web.getUrl().endsWith("planner.html")){String id=pendingTaskId,date=pendingTaskDate;web.evaluateJavascript("(function(){if(typeof navigateToTasks!=='function')return false;navigateToTasks("+JSONObject.quote(id)+","+JSONObject.quote(date)+");return true;})()",result->{if("true".equals(result)&&id.equals(pendingTaskId)){pendingTaskId=null;pendingTaskDate=null;}});}String pending=AlarmScheduler.pendingCompletions(this).toString();web.evaluateJavascript("window.dispatchEvent(new CustomEvent('planner-native-resume',{detail:"+pending+"}));",null);}
     @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);pendingTaskId=intent.getStringExtra("taskId");pendingTaskDate=intent.getStringExtra("date");if(pendingTaskId!=null)load("planner.html");}
     @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] results){super.onRequestPermissionsResult(request,permissions,results);if(request==PermissionSetup.NOTIFICATIONS){String config=AlarmScheduler.prefs(this).getString(AlarmScheduler.CONFIG,null);if(config!=null)AlarmScheduler.reconcile(this,config);injectNativeState();permissionSetup.onResult();}if(request==502){String config=AlarmScheduler.prefs(this).getString(AlarmScheduler.CONFIG,null);if(config!=null)AlarmScheduler.reconcile(this,config);injectNativeState();if(results.length>0&&results[0]!=PackageManager.PERMISSION_GRANTED)Toast.makeText(this,"Уведомления отключены. Их можно разрешить в меню ⋮",Toast.LENGTH_LONG).show();}}
-    @Override protected void onResume(){super.onResume();String config=AlarmScheduler.prefs(this).getString(AlarmScheduler.CONFIG,null);if(config!=null)AlarmScheduler.reconcile(this,config);if(web!=null){web.onResume();injectNativeState();}if(permissionSetup!=null)permissionSetup.onResume();}
-    @Override protected void onPause(){if(web!=null)web.onPause();super.onPause();}
+    @Override protected void onResume(){super.onResume();foreground=true;String config=AlarmScheduler.prefs(this).getString(AlarmScheduler.CONFIG,null);if(config!=null)AlarmScheduler.reconcile(this,config);if(web!=null){web.onResume();injectNativeState();}if(permissionSetup!=null)permissionSetup.onResume();if(web!=null)web.post(()->SystemTest.offerResult(this));}
+    @Override public void onWindowFocusChanged(boolean focus){super.onWindowFocusChanged(focus);if(focus&&web!=null)web.post(()->SystemTest.offerResult(this));}
+    @Override protected void onPause(){foreground=false;if(web!=null)web.onPause();super.onPause();}
     @Override protected void onSaveInstanceState(Bundle state){web.saveState(state);super.onSaveInstanceState(state);}
     @Override public void onBackPressed(){handleBack();}
     void handleBack(){web.evaluateJavascript("(function(){if(window.PlannerSync&&PlannerSync.closeIfOpen())return 'closed';var cal=document.getElementById('startCalendarDisclosure');if(cal&&cal.open&&matchMedia('(max-width:1100px)').matches){cal.open=false;return 'closed'}var m=document.querySelector('.modal-bg.open');if(m&&typeof closeModal==='function'){closeModal(m.id);return 'closed'}if(typeof closeTaskModal==='function'&&!document.getElementById('taskModalBg').hidden){closeTaskModal();return 'closed'}var d=document.getElementById('tasksDetail');if(d&&!d.hidden&&typeof closeTaskDetail==='function'){closeTaskDetail();return 'closed'}return 'back'})()",result->{if(!"\"closed\"".equals(result)){if(web.canGoBack())web.goBack();else new AlertDialog.Builder(this).setMessage("Закрыть планёр?").setPositiveButton("Закрыть",(d,w)->finish()).setNegativeButton("Остаться",null).show();}});}
@@ -106,6 +117,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void exportDocument(String name,String text){if(text.length()>10*1024*1024)return;runOnUiThread(()->{pendingExport=text.getBytes(StandardCharsets.UTF_8);Intent intent=new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/json").putExtra(Intent.EXTRA_TITLE,name.replaceAll("[^A-Za-z0-9_.-]","_").substring(0,Math.min(name.length(),100)));try{startActivityForResult(intent,503);}catch(ActivityNotFoundException e){pendingExport=null;Toast.makeText(MainActivity.this,"Не найден файловый менеджер",Toast.LENGTH_SHORT).show();}});}
         @JavascriptInterface public void scheduleReminders(String json){if(json.length()>5*1024*1024)return;AlarmScheduler.reconcile(MainActivity.this,json);}
         @JavascriptInterface public void requestNotifications(){runOnUiThread(()->MainActivity.this.requestNotifications());}
+        @JavascriptInterface public void runSystemTest(){runOnUiThread(()->SystemTest.open(MainActivity.this));}
         @JavascriptInterface public void requestExactAlarms(){runOnUiThread(()->MainActivity.this.requestExactAlarms());}
         @JavascriptInterface public String notificationState(){boolean notifications=notificationsEnabled();boolean exact=Build.VERSION.SDK_INT<31||((AlarmManager)getSystemService(ALARM_SERVICE)).canScheduleExactAlarms();try{return new JSONObject().put("notifications",notifications).put("exact",exact).toString();}catch(JSONException e){return "{}";}}
         @JavascriptInterface public String pendingCompletions(){return AlarmScheduler.pendingCompletions(MainActivity.this).toString();}

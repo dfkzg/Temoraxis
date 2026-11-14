@@ -1453,7 +1453,24 @@ function getAllTasks(includeDeleted = false) {
   const list = Array.isArray(raw) ? raw.map(normalizeTask).filter(Boolean) : [];
   return includeDeleted ? list : list.filter(t => !t.deleted);
 }
+function reminderScheduleSignature(task) {
+  const r=task.reminder||{};
+  return JSON.stringify([task.date||'',task.time||'',task.repeat||'none',[...(task.repeatDays||[])].sort(),!!r.enabled,Number(r.minutesBefore)||0,!!r.repeatUntilDone,Number(r.repeatInterval)||5]);
+}
+function resetEditedReminderMarks(previous,tasks) {
+  const old=new Map(previous.map(task=>[task.id,task])),log=Store.get(STORAGE_KEYS.reminderLog,{});
+  let changed=false;
+  for(const task of tasks){
+    const before=old.get(task.id);if(!before)continue;
+    if(reminderScheduleSignature(before)!==reminderScheduleSignature(task)||(before.status==='done'&&task.status!=='done')){
+      for(const key of Object.keys(log))if(key.startsWith(task.id+'|')){delete log[key];changed=true;}
+      const banner=document.getElementById('plannerReminderBanner');if(banner?.dataset.taskId===task.id){stopPlannerSound();banner.remove();}
+    }else for(const [date,record] of Object.entries(before.occurrences||{}))if(record.status==='done'&&task.occurrences?.[date]?.status!=='done'){delete log[task.id+'|'+date];changed=true;}
+  }
+  if(changed)Store.set(STORAGE_KEYS.reminderLog,log);
+}
 function saveAllTasks(tasks) {
+  resetEditedReminderMarks(getAllTasks(true),tasks);
   if (!Store.set(STORAGE_KEYS.tasks, tasks)) return false;
   queueMicrotask(() => {
     const banner = document.getElementById('plannerReminderBanner');
@@ -1943,7 +1960,7 @@ function openTaskModal(taskId) {
 
   bg.hidden = false;
   document.body.style.overflow = 'hidden';
-  setTimeout(() => document.getElementById('taskTitleInput').focus(), 50);
+  setTimeout(() => { if(!bg.hidden&&!bg.contains(document.activeElement))document.getElementById('taskTitleInput').focus(); }, 50);
 }
 
 function closeTaskModal() {

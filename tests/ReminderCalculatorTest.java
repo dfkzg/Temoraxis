@@ -24,6 +24,22 @@ public final class ReminderCalculatorTest {
   check(next(future,"2026-11-14T08:00:00Z",empty,empty,empty).getString("date").equals("2027-03-01"),"distant series scheduled");
   JSONObject moscow=ReminderCalculator.next(one,ZoneId.of("Europe/Moscow"),stamp("2026-11-14T05:00:00Z"),empty,empty,empty);
   check(moscow.getLong("due")==stamp("2026-11-14T05:55:00Z"),"device timezone");
-  System.out.println("PASS: native reminder lead, expiration, daily/weekly recurrence, per-date completion, repeat interval, dismissal, distant schedule, timezone");
+  JSONObject before=task("none"),edited=new JSONObject(before.toString()).put("time","09:30");
+  JSONObject oldConfig=new JSONObject().put("tasks",new JSONArray().put(before)),config=new JSONObject().put("tasks",new JSONArray().put(edited));
+  JSONObject delivery=new JSONObject().put("task1|2026-11-14",stamp("2026-11-14T08:55:00Z")),stopped=new JSONObject().put("task1|2026-11-14",true),completed=new JSONObject();
+  ReminderCalculator.resetForEdits(oldConfig,oldConfig,delivery,stopped,completed);
+  check(delivery.has("task1|2026-11-14")&&stopped.has("task1|2026-11-14"),"resume and permission changes do not replay alarms");
+  ReminderCalculator.resetForEdits(oldConfig,config,delivery,stopped,completed);
+  check(!delivery.has("task1|2026-11-14")&&!stopped.has("task1|2026-11-14"),"changing time re-arms fired and dismissed task");
+  check(next(edited,"2026-11-14T09:00:00Z",delivery,stopped,completed).getLong("due")==stamp("2026-11-14T09:25:00Z"),"edited task gets new due time");
+  delivery.put("task1|2026-11-14",1);stopped.put("task1|2026-11-14",true);
+  ReminderCalculator.resetForEdits(oldConfig,new JSONObject().put("tasks",new JSONArray().put(new JSONObject(before.toString()).put("title","Renamed"))),delivery,stopped,completed);
+  check(delivery.has("task1|2026-11-14")&&stopped.has("task1|2026-11-14"),"title edit does not replay alarm");
+  before.put("status","done");edited.put("status","done");completed.put("task1|2026-11-14",true);
+  ReminderCalculator.resetForEdits(oldConfig,config,delivery,stopped,completed);
+  check(completed.has("task1|2026-11-14")&&next(edited,"2026-11-14T09:00:00Z",delivery,stopped,completed)==null,"time edit never reopens completed task");
+  edited.put("status","todo");ReminderCalculator.resetForEdits(oldConfig,config,delivery,stopped,completed);
+  check(!completed.has("task1|2026-11-14")&&next(edited,"2026-11-14T09:00:00Z",delivery,stopped,completed)!=null,"explicit reopening removes native done mark");
+  System.out.println("PASS: native reminder lead, expiration, daily/weekly recurrence, per-date completion, repeat interval, dismissal, distant schedule, timezone, edited time re-arms without replay on resume/title edits, completed task protection");
  }
 }
