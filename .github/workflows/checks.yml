@@ -33,6 +33,8 @@ jobs:
         run: |
           docker build --file server/Dockerfile --tag temoraxis-build-check .
           docker run --rm temoraxis-build-check python -c "from pathlib import Path; assert Path('web/planner.html').is_file(); assert Path('web/icon-512.png').is_file()"
+      - name: Supabase permissions and atomic writes
+        run: python tests/test_supabase_sql.py
       - name: API tests
         run: python tests/test_server.py
       - name: Native reminder rules
@@ -48,3 +50,4 @@ jobs:
           npx playwright install --with-deps chromium
           python tests/run_browser_tests.py
           node tests/browser_download_page.cjs
+          python tests/test_public_app.py

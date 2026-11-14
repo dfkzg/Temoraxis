@@ -2,7 +2,7 @@ name: Download page
 on:
   push:
     branches: [main]
-    paths: ['docs/**', 'web-source/icon.svg', 'web-source/icon-512.png', 'tools/prepare_pages.py', '.github/workflows/pages.yml']
+    paths: ['docs/**', 'web-source/**', 'supabase/**', 'stage_web.py', 'tools/prepare_pages.py', '.github/workflows/pages.yml']
   workflow_dispatch:
 permissions:
   contents: read

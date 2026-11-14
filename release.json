@@ -1,5 +1,5 @@
 {
-  "version": "0.1.11",
+  "version": "0.1.12",
   "date": "2026-11-14",
   "androidPackage": "ru.personal.planner",
   "minAndroid": 8,
@@ -8,6 +8,6 @@
   "apkSha256": null,
   "signing": "development",
   "serverDeployed": false,
-  "versionCode": 12,
-  "changeNotes": "Перерисованы статические иконки, PNG воспроизводимо создаются из SVG проекта. Добавлены лицензии, сведения о происхождении и раздел лицензий в приложении."
+  "versionCode": 13,
+  "changeNotes": "Добавлено подключение к облаку Temoraxis на Supabase: вход, синхронизация и защита конфликтов. Веб-планёр доступен на странице проекта; требуется однократная настройка базы владельцем."
 }

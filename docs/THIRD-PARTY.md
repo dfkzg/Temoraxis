@@ -40,3 +40,7 @@ JAR ECJ и JSON-java, npm-пакеты, браузер Chromium и Android SDK �
 Docker-конфигурация использует `python:3.12-slim` и `caddy:2`. Их образы и входящие компоненты имеют собственные лицензии и уведомления, которые сохраняются в дистрибутивах. Caddy — Apache-2.0: https://github.com/caddyserver/caddy/blob/master/LICENSE. Описание образа Python: https://hub.docker.com/_/python. Эти образы не являются содержимым Android APK.
 
 GitHub Actions подключаются по закреплённым коммитам из workflow и выполняются отдельно в CI; их код не становится автоматически кодом Android-приложения. При самостоятельном распространении образов или инструментов нужно сохранять уведомления именно тех дистрибутивов, которые распространяются.
+
+## Облачная синхронизация
+
+Supabase используется как внешний сервис Auth и PostgreSQL по опубликованному HTTP API: https://supabase.com/docs . Клиентский транспорт написан для проекта с помощью ChatGPT/Codex на стандартном fetch; готовый Supabase SDK в приложение не копируется. PostgreSQL 17 в Docker применяется для тестов SQL-схемы, его бинарные файлы в APK и исходники не входят; условия PostgreSQL: https://www.postgresql.org/about/licence/ .
