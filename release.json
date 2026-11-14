@@ -1,5 +1,5 @@
 {
-  "version": "0.1.12",
+  "version": "0.1.13",
   "date": "2026-11-14",
   "androidPackage": "ru.personal.planner",
   "minAndroid": 8,
@@ -7,7 +7,7 @@
   "apk": "dist/temoraxis-android.apk",
   "apkSha256": null,
   "signing": "development",
-  "serverDeployed": false,
-  "versionCode": 13,
-  "changeNotes": "Добавлено подключение к облаку Temoraxis на Supabase: вход, синхронизация и защита конфликтов. Веб-планёр доступен на странице проекта; требуется однократная настройка базы владельцем."
+  "serverDeployed": true,
+  "versionCode": 14,
+  "changeNotes": "Автоматическая синхронизация после сохранения задач, шаблонов и экспресс-панели. Получение изменений каждые 15 секунд в открытом приложении; повторная отправка после восстановления интернета."
 }

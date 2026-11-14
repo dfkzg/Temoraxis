@@ -1,0 +1,40 @@
+const {chromium}=require('playwright');
+const assert=require('node:assert/strict');
+const BASE=process.env.PLANNER_TEST_URL;
+(async()=>{
+ const browser=await chromium.launch();
+ const contexts=[await browser.newContext(),await browser.newContext()];
+ const [a,b]=await Promise.all(contexts.map(c=>c.newPage()));
+ const errors=[];for(const p of [a,b])p.on('pageerror',e=>errors.push(e.message));
+ const username='auto-'+Date.now();
+ for(const p of [a,b]){
+  await p.goto(BASE+'/planner.html');await p.evaluate(()=>PlannerSync.open());
+  await p.fill('#psync-login',username);await p.fill('#psync-password','auto-test-password');
+ }
+ await a.fill('#psync-invite','local-test-invite');await a.click('#psync-register');
+ await a.waitForFunction(()=>document.getElementById('psync-auth').hidden);
+ await b.click('#psync-login-btn');await b.waitForFunction(()=>document.getElementById('psync-auth').hidden);
+ await a.evaluate(()=>createTask({id:'automatic',title:'Без кнопки синхронизации',date:todayKey()}));
+ await b.waitForFunction(()=>getTask('automatic'),{},{timeout:35000});
+ await b.click('#psync-close');
+ await b.evaluate(()=>openTaskModal('automatic'));
+ await b.fill('#taskDescInput','Несохранённый черновик');
+ await a.evaluate(()=>updateTask('automatic',{title:'Автоматическая правка'}));
+ await a.waitForFunction(()=>document.getElementById('psync-status').textContent==='Данные отправлены на сервер.');
+ await b.waitForTimeout(16000);
+ assert.equal(await b.locator('#taskDescInput').inputValue(),'Несохранённый черновик');
+ assert.equal(await b.evaluate(()=>getTask('automatic').title),'Без кнопки синхронизации');
+ await b.click('#taskModalCancel');
+ await b.waitForFunction(()=>getTask('automatic').title==='Автоматическая правка',{},{timeout:20000});
+ await contexts[0].setOffline(true);
+ await a.evaluate(()=>updateTask('automatic',{title:'Правка без интернета'}));
+ await a.waitForTimeout(2200);
+ assert.equal(await b.evaluate(()=>getTask('automatic').title),'Автоматическая правка');
+ await contexts[0].setOffline(false);
+ await b.waitForFunction(()=>getTask('automatic').title==='Правка без интернета',{},{timeout:35000});
+ await a.evaluate(()=>hardDeleteTask('automatic'));
+ await b.waitForFunction(()=>getTask('automatic').deleted,{},{timeout:35000});
+ assert.deepEqual(errors,[]);
+ await browser.close();
+ console.log('PASS: automatic creation/edit/deletion, receiver polling with sync panel open, draft protection and offline reconnection');
+})().catch(e=>{console.error(e);process.exit(1);});
