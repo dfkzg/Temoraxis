@@ -89,7 +89,7 @@ html, body { height: 100%; }
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'DeepSeek', 'Segoe UI', Inter, -apple-system, sans-serif;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
   font-size: 15px;
   line-height: 1.5;
   overflow-x: hidden;
@@ -1022,42 +1022,25 @@ html:not([data-theme="space"]) .settings-stars { display:none; }
 
 <div class="app">
   <a class="back-btn" href="Start_page.html" title="Назад к Экспресс-панели">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="19" y1="12" x2="5" y2="12"/>
-      <polyline points="12 19 5 12 12 5"/>
-    </svg>
+    <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" data-icon="temoraxis-back"><path d="M13 6 4 16 13 26 M5 16H28 M23 11l5 5-5 5"/></svg>
     <span>Назад</span>
   </a>
 
   <nav class="nav" id="nav">
     <button class="nav-btn active" data-page="tasks" title="Задачи">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M9 11l3 3L22 4"/>
-        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-      </svg>
+      <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" data-icon="temoraxis-tasks"><path d="M5 6H27V27H5Z M5 13H27 M12 13V27 M16 19h7 M16 24h5"/><circle cx="8.5" cy="19" r="1" fill="currentColor" stroke="none"/><circle cx="8.5" cy="24" r="1" fill="currentColor" stroke="none"/></svg>
       <span>Задачи</span>
     </button>
     <button class="nav-btn" data-page="calendar" title="Календарь">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="4" width="18" height="18" rx="2"/>
-        <line x1="16" y1="2" x2="16" y2="6"/>
-        <line x1="8" y1="2" x2="8" y2="6"/>
-        <line x1="3" y1="10" x2="21" y2="10"/>
-      </svg>
+      <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" data-icon="temoraxis-calendar"><path d="M5 8H27V27H5Z M10 4v8 M22 4v8 M5 15H27"/><path d="M10 20h3v3h-3z M19 20h3v3h-3z" fill="currentColor" stroke="none"/></svg>
       <span>Календарь</span>
     </button>
     <button class="nav-btn" data-page="clock" title="Часы">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="9"/>
-        <polyline points="12 7 12 12 15 14"/>
-      </svg>
+      <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" data-icon="temoraxis-clock"><path d="M16 4A12 12 0 0 1 28 16 M28 16A12 12 0 0 1 16 28 M16 28A12 12 0 0 1 4 16 M4 16A12 12 0 0 1 16 4 M16 9v8h7"/><path d="M16 4v2 M28 16h-2 M16 28v-2 M4 16h2"/></svg>
       <span>Часы</span>
     </button>
     <button class="nav-btn" data-page="settings" title="Настройки">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="3"/>
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-      </svg>
+      <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" data-icon="temoraxis-settings"><path d="M5 8h7 M19 8h8 M5 16h15 M26 16h1 M5 24h3 M15 24h12"/><path d="M12 5h7v6h-7z M20 13h6v6h-6z M8 21h7v6H8z"/></svg>
       <span>Настройки</span>
     </button>
   </nav>
@@ -1083,10 +1066,7 @@ html:not([data-theme="space"]) .settings-stars { display:none; }
         <div class="tasks-search-wrap">
           <input type="text" id="tasksSearch" class="tasks-search" placeholder="Поиск по задачам...">
           <button class="btn-new-task" id="btnNewTask" title="Новая задача (F2)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-              <line x1="12" y1="5" x2="12" y2="19"/>
-              <line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" data-icon="temoraxis-add"><path d="M6 6h20v20H6Z M16 10v12 M10 16h12"/></svg>
             <span>Новая</span>
           </button>
         </div>
@@ -1107,10 +1087,7 @@ html:not([data-theme="space"]) .settings-stars { display:none; }
       </div>
 
       <button class="fab-new-task" id="fabNewTask" title="Новая задача">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-          <line x1="12" y1="5" x2="12" y2="19"/>
-          <line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
+        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" data-icon="temoraxis-add"><path d="M6 6h20v20H6Z M16 10v12 M10 16h12"/></svg>
       </button>
     </section>
 

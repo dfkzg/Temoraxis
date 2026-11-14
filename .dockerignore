@@ -7,3 +7,7 @@
 !server/server.py
 !server/admin.py
 !server/Dockerfile
+!docs/
+!docs/THIRD-PARTY.md
+!docs/licenses/
+!docs/licenses/**

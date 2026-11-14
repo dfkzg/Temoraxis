@@ -36,3 +36,8 @@ for name in ['planner.html','Start_page.html']:
 for name in ['manifest.webmanifest','sw.js','icon.svg','icon-180.png','icon-192.png','icon-512.png']:
  for folder in [ROOT/'server'/'web',ROOT/'android'/'app'/'src'/'main'/'assets']:
   shutil.copy2(SOURCE/name,folder/name)
+
+# Include attribution in distributed APK/resources, not just in the source repository.
+notices=(ROOT/'docs'/'THIRD-PARTY.md').read_text()+'\n\n'+(ROOT/'docs'/'licenses'/'Feather-MIT.txt').read_text()
+for folder in [ROOT/'server'/'web',ROOT/'android'/'app'/'src'/'main'/'assets']:
+ (folder/'THIRD-PARTY.txt').write_text(notices)

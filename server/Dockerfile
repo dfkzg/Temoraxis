@@ -2,6 +2,8 @@ FROM python:3.12-slim AS web-build
 WORKDIR /source
 COPY stage_web.py ./
 COPY web-source ./web-source
+COPY docs/THIRD-PARTY.md ./docs/THIRD-PARTY.md
+COPY docs/licenses ./docs/licenses
 RUN python stage_web.py
 
 FROM python:3.12-slim

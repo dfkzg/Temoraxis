@@ -25,6 +25,7 @@ jobs:
           java-version: '17'
       - name: Prepare and validate release sources
         run: |
+          python tools/generate_app_icons.py --check
           python stage_web.py
           python tools/prepare_release.py --validate-only
           python -m py_compile server/server.py server/admin.py
