@@ -31,10 +31,10 @@ final class AlarmScheduler {
                     if(next==null)continue;
                     String id=task.getString("id"),nextDate=next.getString("date");long earliest=next.getLong("due");
                     PendingIntent alarm=pending(c,"FIRE",id,nextDate);
-                    try{if(Build.VERSION.SDK_INT<31||manager.canScheduleExactAlarms())manager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,earliest,alarm);else manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,earliest,alarm);}catch(SecurityException e){manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,earliest,alarm);}
+                    try{if(Build.VERSION.SDK_INT<31||manager.canScheduleExactAlarms())manager.setAlarmClock(new AlarmManager.AlarmClockInfo(earliest,PendingIntent.getActivity(c,0,new Intent(c,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE)),alarm);else manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,earliest,alarm);}catch(SecurityException e){manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,earliest,alarm);}
                     scheduled.put(new JSONObject().put("id",id).put("date",nextDate));
                 }
-            }else ((NotificationManager)c.getSystemService(Context.NOTIFICATION_SERVICE)).cancelAll();
+            }else {c.stopService(new Intent(c,AlarmSoundService.class));((NotificationManager)c.getSystemService(Context.NOTIFICATION_SERVICE)).cancelAll();}
             prefs(c).edit().putString(SCHEDULED,scheduled.toString()).apply();
         }catch(Exception e){android.util.Log.w("Planner","Could not update reminders",e);}
     }
@@ -44,7 +44,7 @@ final class AlarmScheduler {
         try{String key=key(id,date);JSONObject config=object(c,CONFIG),tasksDone=object(c,DONE);
             if("DONE".equals(action)){tasksDone.put(key,true);JSONObject queue=object(c,PENDING);queue.put(key,new JSONObject().put("key",key).put("id",id).put("date",date));prefs(c).edit().putString(DONE,tasksDone.toString()).putString(PENDING,queue.toString()).apply();}
             if("DISMISS".equals(action)){JSONObject dismissed=object(c,DISMISSED);dismissed.put(key,true);prefs(c).edit().putString(DISMISSED,dismissed.toString()).apply();}
-            ((NotificationManager)c.getSystemService(Context.NOTIFICATION_SERVICE)).cancel(key.hashCode());reconcile(c,config.toString());
+            if(key.equals(prefs(c).getString("sounding",null)))c.stopService(new Intent(c,AlarmSoundService.class));((NotificationManager)c.getSystemService(Context.NOTIFICATION_SERVICE)).cancel(key.hashCode());reconcile(c,config.toString());
         }catch(Exception ignored){}
     }
     static void fire(Context c,String id,String date){
@@ -57,14 +57,31 @@ final class AlarmScheduler {
             if(record!=null&&"done".equals(record.optString("status")))return;
             JSONObject sent=object(c,SENT);sent.put(key,System.currentTimeMillis());prefs(c).edit().putString(SENT,sent.toString()).apply();
             NotificationManager manager=(NotificationManager)c.getSystemService(Context.NOTIFICATION_SERVICE);
-            NotificationChannel channel=new NotificationChannel("planner_reminders_v1","Напоминания планёра",NotificationManager.IMPORTANCE_HIGH);channel.setDescription("Запланированные напоминания о задачах");manager.createNotificationChannel(channel);
-            Intent open=new Intent(c,MainActivity.class).putExtra("taskId",id).putExtra("date",date).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP);
-            PendingIntent content=PendingIntent.getActivity(c,key.hashCode(),open,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
-            Notification.Builder builder=new Notification.Builder(c,"planner_reminders_v1").setSmallIcon(R.drawable.ic_notification).setContentTitle(task.optString("title","Задача")).setContentText(date+" · "+task.optString("time")).setContentIntent(content).setAutoCancel(true).setCategory(Notification.CATEGORY_REMINDER)
-                .addAction(new Notification.Action.Builder(null,"Выполнено",pending(c,"DONE",id,date)).build())
-                .addAction(new Notification.Action.Builder(null,"Остановить",pending(c,"DISMISS",id,date)).build());
-            try{manager.notify(key.hashCode(),builder.build());}catch(SecurityException ignored){}
+            Notification notification=notification(c,id,date,task.optString("title","Задача"),task.optString("time"));
+            try{manager.notify(key.hashCode(),notification);}catch(SecurityException ignored){}
+            try{c.startForegroundService(new Intent(c,AlarmSoundService.class).putExtra("taskId",id).putExtra("date",date).putExtra("title",task.optString("title","Задача")).putExtra("time",task.optString("time")));}
+            catch(RuntimeException e){
+                android.util.Log.w("Planner","Android blocked alarm audio service; using notification sound",e);
+                NotificationChannel fallback=new NotificationChannel("planner_alarm_fallback_v1","Напоминания без фоновой службы",NotificationManager.IMPORTANCE_HIGH);
+                fallback.setSound(android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_ALARM),new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_ALARM).build());manager.createNotificationChannel(fallback);
+                try{manager.notify(key.hashCode(),Notification.Builder.recoverBuilder(c,notification).setChannelId("planner_alarm_fallback_v1").build());}catch(SecurityException ignored){}
+            }
             reconcile(c,config.toString());
         }catch(Exception e){android.util.Log.w("Planner","Could not show reminder",e);}
     }
+    static Notification notification(Context c,String id,String date,String title,String time){
+        NotificationManager manager=(NotificationManager)c.getSystemService(Context.NOTIFICATION_SERVICE);
+        NotificationChannel channel=new NotificationChannel("planner_alarms_v2","Будильники задач",NotificationManager.IMPORTANCE_HIGH);
+        channel.setDescription("Звук будильника воспроизводится отдельно до остановки или в течение минуты");
+        channel.setSound(null,null);manager.createNotificationChannel(channel);
+        String key=key(id,date);
+        Intent open=new Intent(c,MainActivity.class).putExtra("taskId",id).putExtra("date",date).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent content=PendingIntent.getActivity(c,key.hashCode(),open,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+        return new Notification.Builder(c,"planner_alarms_v2").setSmallIcon(R.drawable.ic_notification).setContentTitle(title).setContentText(date+" · "+time)
+            .setContentIntent(content).setAutoCancel(false).setCategory(Notification.CATEGORY_ALARM)
+            .setDeleteIntent(pending(c,"DISMISS",id,date))
+            .addAction(new Notification.Action.Builder(null,"Выполнено",pending(c,"DONE",id,date)).build())
+            .addAction(new Notification.Action.Builder(null,"Остановить",pending(c,"DISMISS",id,date)).build()).build();
+    }
+
 }

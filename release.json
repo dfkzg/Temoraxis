@@ -1,5 +1,5 @@
 {
-  "version": "0.1.6",
+  "version": "0.1.7",
   "date": "2026-11-14",
   "androidPackage": "ru.personal.planner",
   "minAndroid": 8,
@@ -8,6 +8,6 @@
   "apkSha256": null,
   "signing": "development",
   "serverDeployed": false,
-  "versionCode": 7,
-  "changeNotes": "Исправлено скрытие нижней панели в календаре и перекрытие последних задач на телефоне."
+  "versionCode": 8,
+  "changeNotes": "Добавлен фоновый звук будильника Android, запрос точных будильников и подсказка настройки работы в фоне."
 }
