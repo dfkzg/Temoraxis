@@ -22,3 +22,10 @@ releases/*.zip
 /server/web/
 /android/app/src/main/assets/
 node_modules/
+
+# Private backup and Google authorization material
+*.dump
+*.dump.age
+*backup-key*.txt
+*google-drive-secret*.json
+client_secret*.json

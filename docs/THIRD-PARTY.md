@@ -44,3 +44,7 @@ GitHub Actions подключаются по закреплённым комми
 ## Облачная синхронизация
 
 Supabase используется как внешний сервис Auth и PostgreSQL по опубликованному HTTP API: https://supabase.com/docs . Клиентский транспорт написан для проекта с помощью ChatGPT/Codex на стандартном fetch; готовый Supabase SDK в приложение не копируется. PostgreSQL 17 в Docker применяется для тестов SQL-схемы, его бинарные файлы в APK и исходники не входят; условия PostgreSQL: https://www.postgresql.org/about/licence/ .
+
+## Резервное копирование — внешние инструменты
+
+В `tools/backup/` используются стандартная библиотека Python, HTTP API Google Drive и OAuth 2.0; Google SDK и чужие реализации OAuth в проект не копируются. Для шифрования workflow устанавливает **age** из пакета Ubuntu (BSD-3-Clause; https://github.com/FiloSottile/age/blob/main/LICENSE), для логического дампа использует `pg_dump`/`pg_restore` из `postgres:17-alpine` (PostgreSQL License и лицензии компонентов образа; https://www.postgresql.org/about/licence/). Бинарные инструменты не включаются в APK или архив исходников. В тестах используется age 1.2.1 из официального выпуска; Actions использует версию age из репозитория Ubuntu 24.04.
