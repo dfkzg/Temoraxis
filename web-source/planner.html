@@ -711,7 +711,7 @@ textarea.form-input { resize: vertical; min-height: 60px; }
 .cal-agenda-view-toggle button { flex:1; min-width:0; min-height:40px; padding:8px; border:0; border-radius:var(--r-sm); color:var(--text-dim); background:transparent; font:inherit; font-size:13px; cursor:pointer; }
 .cal-agenda-view-toggle button.active { background:var(--accent-soft); color:var(--accent); }
 .cal-agenda-layout.cal-agenda-important { grid-template-columns:minmax(0,1fr); }
-.cal-agenda-between { margin-bottom:12px; }
+.cal-agenda-between { margin:0; }
 .cal-agenda-body { display: flex; flex-direction: column; gap: 16px; }
 
 /* Новая сетка Agenda: слева часы, справа задачи */
@@ -775,7 +775,7 @@ textarea.form-input { resize: vertical; min-height: 60px; }
   background: var(--bg-card); padding: 2px 8px; border-radius: var(--r-sm);
 }
 .cal-agenda-empty { text-align: center; color: var(--text-mute); font-size: 15px; padding: 32px 0; }
-.cal-agenda-group { margin-bottom:12px; border:1px solid var(--border); border-left:4px solid var(--agenda-color); border-radius:var(--r-md); background:var(--bg-card); min-width:0; overflow:hidden; }
+.cal-agenda-group { margin:0; border:1px solid var(--border); border-left:4px solid var(--agenda-color); border-radius:var(--r-md); background:var(--bg-card); min-width:0; overflow:hidden; }
 .cal-agenda-group:last-child { margin-bottom:0; }
 .cal-agenda-group-title { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:6px 12px; padding:12px; margin:0; font-size:14px; font-weight:600; }
 .cal-agenda-group-title > span:first-child { min-width:0; overflow-wrap:anywhere; }
@@ -914,6 +914,7 @@ textarea.form-input { resize: vertical; min-height: 60px; }
 .cal-side .cal-cell.other { opacity: 0.25; }
 .cal-side .cal-cell.other .cal-cell-number { filter: none; }
 .cal-agenda-layout { grid-template-columns: minmax(180px, 240px) minmax(0, 1fr); }
+.cal-agenda-right.cal-agenda-schedule { gap:6px; }
 .cal-agenda-right { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .cal-agenda-task-title { min-width: 0; overflow-wrap: anywhere; }
 @media (min-width: 900px) {
@@ -2457,12 +2458,14 @@ function renderAgenda() {
   html += `<div class="cal-agenda-layout${showSchedule ? '' : ' cal-agenda-important'}">`;
   if(showSchedule) html += `<div class="cal-agenda-left">${clockDayPreview(dateStr)}</div>`;
   
-  html += `<div class="cal-agenda-right">`;
+  html += `<div class="cal-agenda-right${showSchedule ? ' cal-agenda-schedule' : ''}">`;
 
-  if (holiday) html += `<div class="cal-main-event">🎉 ${escapeHtml(holiday.name)}</div>`;
-  specials.forEach(sd => {
-    html += `<div class="cal-main-event" style="border-left-color:${specialDateColor(sd)}; color:${specialDateColor(sd)}">${escapeHtml(sd.name)}</div>`;
-  });
+  if (!showSchedule) {
+    if (holiday) html += `<div class="cal-main-event">🎉 ${escapeHtml(holiday.name)}</div>`;
+    specials.forEach(sd => {
+      html += `<div class="cal-main-event" style="border-left-color:${specialDateColor(sd)}; color:${specialDateColor(sd)}">${escapeHtml(sd.name)}</div>`;
+    });
+  }
 
   if (showSchedule) {
     const ordered=[...tasks].sort((a,b) => (a.time || '99:99').localeCompare(b.time || '99:99') || a.title.localeCompare(b.title,'ru'));
@@ -2481,7 +2484,7 @@ function renderAgenda() {
     if(!groups.length)html+='<div class="cal-agenda-empty">На этот день нет расписания и задач со временем</div>';
   } else {
     const important=tasks.filter(task=>clockTaskMinutes(task)===null);
-    html+=important.length ? `<div class="cal-agenda-tasks">${important.map(t=>calendarTaskRow(t,dateStr,false)).join('')}</div>` : '<div class="cal-agenda-empty">На этот день нет задач без указанного времени</div>';
+    html+=important.length ? `<div class="cal-agenda-tasks">${important.map(t=>calendarTaskRow(t,dateStr,false)).join('')}</div>` : holiday || specials.length ? '' : '<div class="cal-agenda-empty">На этот день нет задач без указанного времени</div>';
   }
 
   html += `</div>`; /* конец правой колонки */
