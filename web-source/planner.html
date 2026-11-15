@@ -629,18 +629,17 @@ textarea.form-input { resize: vertical; min-height: 60px; }
   left: 10px;
 }
 
-/* Соседние месяцы — размыты по краям и не кликабельны */
+/* Дни соседних месяцев в основной сетке — приглушённые, но чёткие. */
 .cal-cell.other { 
-  opacity: 0.4; 
+  opacity: 0.65; 
   cursor: default; 
   pointer-events: none; /* Полный запрет на клики */
   background: transparent; 
   border-color: transparent;
 }
 .cal-cell.other .cal-cell-number { 
-  color: var(--text-mute); 
+  color: var(--text-dim); 
   font-weight: 400;
-  filter: blur(1.5px); /* Размываем ТОЛЬКО цифру */
 }
 
 /* Выходные */
