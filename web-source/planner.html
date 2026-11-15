@@ -2679,13 +2679,11 @@ function clockTaskMarkers(date, selectedHour = null, interactive = true) {
 }
 function clockDayPreview(date) {
   const slots = clockSchedule(date), minutes = slots.filter(Boolean).length * 5;
-  let svg = '';
-  for (let hour = 0; hour < 24; hour++) {
-    svg += `<path fill="var(--bg-item)" d="${clockWedge(hour * 15 + .6, (hour + 1) * 15 - .6, 105, 172)}"/>`;
+  // This small calendar overview uses continuous arcs; editable clock grids stay detailed.
+  let svg = '<circle cx="200" cy="200" r="140" fill="none" stroke="var(--bg-item)" stroke-width="64"/>';
+  for (const {start,end,slot} of clockDayRanges(date)) {
+    svg += `<circle cx="200" cy="200" r="140" fill="none" stroke="${clockColor(slot)}" stroke-width="64" pathLength="288" stroke-dasharray="${end-start} ${288-(end-start)}" stroke-dashoffset="${-start}" transform="rotate(-90 200 200)"><title>${clockRangeTime(start)} — ${clockRangeTime(end)} · ${escapeHtml(slot.label || 'Без подписи')}</title></circle>`;
   }
-  slots.forEach((slot, i) => {
-    if (slot) svg += `<path fill="${clockColor(slot)}" d="${clockWedge(i * 1.25 + .08, (i + 1) * 1.25 - .08, 108, 169)}"><title>${clockTime(i)} · ${escapeHtml(slot.label || 'Без подписи')}</title></path>`;
-  });
   [0, 6, 12, 18].forEach(hour => { svg += clockText(hour * 15, 188, String(hour).padStart(2, '0')); });
   svg += clockTaskMarkers(date, null, false);
   svg += '<text x="200" y="193" class="clock-preview-center">24</text><text x="200" y="225">часа</text>';
