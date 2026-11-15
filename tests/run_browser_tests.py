@@ -10,6 +10,6 @@ with tempfile.TemporaryDirectory() as folder:
    try:urllib.request.urlopen(env['PLANNER_TEST_URL']+'/api/health',timeout=.2);break
    except Exception:time.sleep(.05)
   else:raise RuntimeError('Test server did not start')
-  for name in ['browser_sync.cjs','browser_accounts.cjs','browser_native_offline.cjs','browser_drafts.cjs','browser_calendar_overlay.cjs','browser_mobile_nav.cjs','browser_reminder_reschedule.cjs','browser_supabase.cjs','browser_autosync.cjs']:
+  for name in ['browser_sync.cjs','browser_accounts.cjs','browser_native_offline.cjs','browser_drafts.cjs','browser_calendar_overlay.cjs','browser_mobile_nav.cjs','browser_reminder_reschedule.cjs','browser_supabase.cjs','browser_autosync.cjs','browser_calendar_agenda.cjs']:
    subprocess.run(['node',str(ROOT/'tests'/name)],env=env,check=True,timeout=120)
  finally:server.terminate();server.wait()
