@@ -9,13 +9,34 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
   createTask({id:'agenda-early',title:'Утренняя задача',date:today,time:'09:00'});
   createTask({id:'agenda-daily',title:'Повторяющаяся задача',date:today,time:'07:30',repeat:'daily'});
   createTask({id:'agenda-tomorrow',title:'Только завтра',date:toDateKey(tomorrow),time:'12:00'});
+  createTask({id:'agenda-boundary-before',title:'Перед границей',date:today,time:'12:59'});
+  createTask({id:'agenda-boundary-at',title:'На границе',date:today,time:'13:00'});
+  const slots=emptyClockSlots();
+  for(const [from,to,label,color] of [[0,7,'Сон','#8b5cf6'],[9,13,'Работа','#6b85ff'],[13,15,'Учёба','#3cba92'],[23,24,'Сон','#8b5cf6']])for(let i=from*12;i<to*12;i++)slots[i]={label,color};
+  const clock=clockData();clock.overrides[today]=slots;Store.set(STORAGE_KEYS.clock,clock);
   setTaskDone('agenda-early',today);
   CalState.agendaDate=new Date(today+'T12:00:00');renderAgenda();
  });
  await page.click('[data-page="calendar"]');
  const rows=page.locator('#calAgenda .cal-agenda-task-item');
- assert.deepEqual(await rows.evaluateAll(items=>items.map(x=>x.dataset.taskId)),['agenda-daily','agenda-early','agenda-late','agenda-no-time']);
- assert.match(await rows.nth(0).innerText(),/Ежедневно/);assert.match(await rows.nth(1).innerText(),/Выполнено/);assert.match(await rows.last().innerText(),/Без времени/);
+ assert.equal(await page.locator('[data-agenda-view="important"]').getAttribute('aria-pressed'),'true');
+ assert.deepEqual(await rows.evaluateAll(items=>items.map(x=>x.dataset.taskId)),['agenda-no-time']);
+ assert.equal(await rows.locator('time').count(),0);
+ await page.click('[data-agenda-view="schedule"]');
+ assert.deepEqual(await rows.evaluateAll(items=>items.map(x=>x.dataset.taskId)),['agenda-daily','agenda-early','agenda-boundary-before','agenda-boundary-at','agenda-late']);
+ assert.match(await rows.nth(0).innerText(),/Ежедневно/);assert.match(await rows.nth(1).innerText(),/Выполнено/);assert.equal(await page.locator('[data-task-id="agenda-no-time"]').count(),0);
+ const work=page.locator('[data-agenda-group="108"]'),study=page.locator('[data-agenda-group="156"]');
+ assert.match(await work.locator('h3').innerText(),/Работа/);assert.match(await work.locator('h3').innerText(),/09:00 — 13:00/);
+ assert.deepEqual(await work.locator('[data-task-id]').evaluateAll(items=>items.map(x=>x.dataset.taskId)),['agenda-early','agenda-boundary-before']);
+ assert.equal(await study.locator('[data-task-id]').getAttribute('data-task-id'),'agenda-boundary-at');
+ assert.equal(await page.locator('[data-agenda-group="0"] [data-task-id]').count(),0,'Empty sleep interval stays visible');
+ assert.equal(await page.locator('[data-agenda-group="84"]').count(),0,'Between-interval tasks have no artificial group');
+ assert.equal(await page.locator('[data-task-id="agenda-daily"]').evaluate(el=>!!el.closest('.cal-agenda-group')),false);
+ assert.equal(await page.locator('[data-task-id="agenda-late"]').evaluate(el=>!!el.closest('.cal-agenda-group')),false);
+ assert.equal(await page.locator('#calAgendaBody').innerText().then(t=>t.includes('Вне расписания')),false);
+ await page.evaluate(()=>{savePlannerSettings({timeFormat:'12'});renderAgenda();});
+ assert.match(await page.locator('[data-agenda-group="276"] h3').innerText(),/12:00 ночи/);
+ await page.evaluate(()=>{savePlannerSettings({timeFormat:'24'});renderAgenda();});
  for(const width of [320,390,1280]){
   await page.setViewportSize({width,height:844});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'No horizontal page overflow at '+width);
@@ -23,13 +44,20 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
  }
  await page.click('#calAgendaNext');
  assert.deepEqual(await rows.evaluateAll(items=>items.map(x=>x.dataset.taskId)),['agenda-daily','agenda-tomorrow']);
+ assert.equal(await page.locator('.cal-agenda-group-title').filter({hasText:'Учёба'}).count(),0,'Selected date uses its own schedule');
+ const selectedDate=await page.evaluate(()=>toDateKey(CalState.agendaDate));
+ await page.click('[data-agenda-view="important"]');assert.equal(await rows.count(),0);
+ assert.equal(await page.evaluate(()=>toDateKey(CalState.agendaDate)),selectedDate,'Mode switch preserves selected date');
+ await page.click('[data-agenda-view="schedule"]');
  await rows.first().focus();await page.keyboard.press('Enter');
  assert.equal(await page.locator('#tasksDetail').isVisible(),true);assert.match(await page.locator('.tasks-detail-title').innerText(),/Повторяющаяся/);
  await page.click('[data-page="clock"]');
  assert.equal(await page.locator('#clockTaskList').count(),0);assert.equal(await page.locator('#clockTaskTitle').count(),0);
  assert.equal(await page.locator('#clockHours').isVisible(),true);assert.equal(await page.locator('#clockSummary').count(),1);
  await page.click('[data-page="calendar"]');await page.click('#calAgendaPrev');
+ await page.reload();await page.click('[data-page="calendar"]');
+ assert.equal(await page.locator('[data-agenda-view="schedule"]').getAttribute('aria-pressed'),'true','Mode preference survives reload');
  if(process.env.PLANNER_AGENDA_SCREENSHOT){await page.setViewportSize({width:390,height:844});await page.locator('#calAgenda').screenshot({path:process.env.PLANNER_AGENDA_SCREENSHOT});}
  assert.deepEqual(errors,[]);await browser.close();
- console.log('PASS: calendar day tasks sorted by time, undated-time tasks last, recurring/completed labels, date navigation, keyboard opening, removed duplicate clock list and narrow-screen layout.');
+ console.log('PASS: calendar modes, untimed daily tasks, grouped timed tasks, chronological rows between intervals, boundaries, date-specific templates, mode persistence and mobile layout.');
 })().catch(e=>{console.error(e);process.exit(1);});

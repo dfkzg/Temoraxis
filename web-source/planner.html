@@ -707,6 +707,11 @@ textarea.form-input { resize: vertical; min-height: 60px; }
   display: flex; align-items: center; justify-content: center; transition: all var(--t-fast);
 }
 .cal-nav-btn:hover { color: var(--text); border-color: var(--accent); background: var(--accent-soft); }
+.cal-agenda-view-toggle { display:flex; gap:4px; padding:4px; margin-bottom:16px; border:1px solid var(--border); border-radius:var(--r-md); background:var(--bg-item); }
+.cal-agenda-view-toggle button { flex:1; min-width:0; min-height:40px; padding:8px; border:0; border-radius:var(--r-sm); color:var(--text-dim); background:transparent; font:inherit; font-size:13px; cursor:pointer; }
+.cal-agenda-view-toggle button.active { background:var(--accent-soft); color:var(--accent); }
+.cal-agenda-layout.cal-agenda-important { grid-template-columns:minmax(0,1fr); }
+.cal-agenda-between { margin-bottom:12px; }
 .cal-agenda-body { display: flex; flex-direction: column; gap: 16px; }
 
 /* Новая сетка Agenda: слева часы, справа задачи */
@@ -770,6 +775,14 @@ textarea.form-input { resize: vertical; min-height: 60px; }
   background: var(--bg-card); padding: 2px 8px; border-radius: var(--r-sm);
 }
 .cal-agenda-empty { text-align: center; color: var(--text-mute); font-size: 15px; padding: 32px 0; }
+.cal-agenda-group { margin-bottom:12px; border:1px solid var(--border); border-left:4px solid var(--agenda-color); border-radius:var(--r-md); background:var(--bg-card); min-width:0; overflow:hidden; }
+.cal-agenda-group:last-child { margin-bottom:0; }
+.cal-agenda-group-title { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:6px 12px; padding:12px; margin:0; font-size:14px; font-weight:600; }
+.cal-agenda-group-title > span:first-child { min-width:0; overflow-wrap:anywhere; }
+.cal-agenda-group-period { color:var(--text-dim); font-size:12px; font-weight:400; }
+.cal-agenda-group .cal-agenda-tasks { padding:0 8px 8px; }
+.cal-agenda-group .cal-agenda-task-item { padding:10px; gap:10px; }
+.cal-agenda-group .cal-agenda-task-time { width:72px; padding:2px 4px; }
 .cal-agenda-expand-btn {
   display: block; width: 100%; margin-top: 8px; padding: 12px;
   background: transparent; color: var(--text-dim); border: 1px dashed var(--border-hi);
@@ -1125,6 +1138,10 @@ html:not([data-theme="space"]) .settings-stars { display:none; }
           <button class="cal-nav-btn" id="calAgendaPrev" title="Предыдущий день">‹</button>
           <span class="cal-agenda-date" id="calAgendaDate">Сегодня</span>
           <button class="cal-nav-btn" id="calAgendaNext" title="Следующий день">›</button>
+        </div>
+        <div class="cal-agenda-view-toggle" role="group" aria-label="Содержимое выбранного дня">
+          <button type="button" data-agenda-view="important" class="active" aria-pressed="true">Задачи дня</button>
+          <button type="button" data-agenda-view="schedule" aria-pressed="false">Расписание</button>
         </div>
         <div class="cal-agenda-body" id="calAgendaBody"></div>
       </div>
@@ -2083,7 +2100,7 @@ function initTasksUI() {
 }
 
 /* КАЛЕНДАРЬ */
-const CalState = { view: 'month', monthYear: null, weekStart: null, agendaDate: null };
+const CalState = { view: 'month', monthYear: null, weekStart: null, agendaDate: null, agendaView: Store.get('planner_calendar_agenda_view_v1','important') === 'schedule' ? 'schedule' : 'important' };
 const MONTH_NAMES_NOM = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 const MONTH_NAMES_GEN = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
 const MONTH_NAMES_SHORT = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
@@ -2401,6 +2418,21 @@ function renderWeekGrid() {
   }
 }
 
+function calendarTaskRow(t,dateStr,showTime=true) {
+  const timed = clockTaskMinutes(t) !== null;
+  const repeat = t.repeat === 'daily' ? 'Ежедневно' : t.repeat === 'weekly' ? 'По дням недели' : 'На эту дату';
+  const status = t.status === 'done' ? ' · Выполнено' : t.status === 'missed' ? ' · Пропущено' : '';
+  return `<button type="button" class="cal-agenda-task-item" data-task-id="${escapeHtml(t.id)}">
+    ${showTime && timed ? `<time class="cal-agenda-task-time" datetime="${dateStr}T${escapeHtml(t.time)}">${escapeHtml(displayTime(t.time))}</time>` : ''}
+    <span class="cal-agenda-task-title">${escapeHtml(t.title)}<small>${repeat}${status}</small></span>
+    <span class="cal-agenda-task-prio ${t.priority}"></span>
+  </button>`;
+}
+function calendarDayGroups(date,tasks) {
+  const timed = tasks.filter(task => clockTaskMinutes(task) !== null);
+  const groups = clockDayRanges(date,true).map(range => ({...range,label:range.slot ? range.slot.label || 'Без подписи' : 'Вне расписания',tasks:timed.filter(task => {const minute=clockTaskMinutes(task);return minute>=range.start*5 && minute<range.end*5;})})).filter(group => group.slot || group.tasks.length);
+  return groups;
+}
 function renderAgenda() {
   const dateEl = document.getElementById('calAgendaDate');
   const bodyEl = document.getElementById('calAgendaBody');
@@ -2413,17 +2445,17 @@ function renderAgenda() {
 
   dateEl.textContent = isToday ? 'Сегодня' : d.getDate() + ' ' + MONTH_NAMES_GEN[d.getMonth()] + ', ' + DAY_NAMES_FULL[dow];
 
-  const tasks = getTasksForDate(dateStr).sort((a,b) => (a.time || '99:99').localeCompare(b.time || '99:99') || a.title.localeCompare(b.title,'ru'));
+  const tasks = getTasksForDate(dateStr);
+  const showSchedule = CalState.agendaView === 'schedule';
+  document.querySelectorAll('[data-agenda-view]').forEach(button => {const active=button.dataset.agendaView===CalState.agendaView;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});
   const specials = getSpecialDatesForDate(dateStr);
   const holiday = isRussianHoliday(dateStr);
 
   let html = '';
   
   /* Создаём двухколоночную сетку: слева часы, справа задачи */
-  html += `<div class="cal-agenda-layout">`;
-  html += `<div class="cal-agenda-left">`;
-  html += clockDayPreview(dateStr);
-  html += `</div>`; /* конец левой колонки */
+  html += `<div class="cal-agenda-layout${showSchedule ? '' : ' cal-agenda-important'}">`;
+  if(showSchedule) html += `<div class="cal-agenda-left">${clockDayPreview(dateStr)}</div>`;
   
   html += `<div class="cal-agenda-right">`;
 
@@ -2432,24 +2464,24 @@ function renderAgenda() {
     html += `<div class="cal-main-event" style="border-left-color:${specialDateColor(sd)}; color:${specialDateColor(sd)}">${escapeHtml(sd.name)}</div>`;
   });
 
-  if (tasks.length > 0) {
-    html += `<div class="cal-agenda-tasks">`;
-    tasks.forEach(t => {
-      const timed = clockTaskMinutes(t) !== null;
-      const repeat = t.repeat === 'daily' ? 'Ежедневно' : t.repeat === 'weekly' ? 'По дням недели' : 'На эту дату';
-      const status = t.status === 'done' ? ' · Выполнено' : t.status === 'missed' ? ' · Пропущено' : '';
-      html += `<button type="button" class="cal-agenda-task-item" data-task-id="${escapeHtml(t.id)}">
-        ${timed ? `<time class="cal-agenda-task-time" datetime="${dateStr}T${escapeHtml(t.time)}">${escapeHtml(displayTime(t.time))}</time>` : '<span class="cal-agenda-task-time">Без времени</span>'}
-        <span class="cal-agenda-task-title">${escapeHtml(t.title)}<small>${repeat}${status}</small></span>
-        <span class="cal-agenda-task-prio ${t.priority}"></span>
-      </button>`;
-    });
-    html += `</div>`;
-    if (tasks.length > 3) {
-      html += `<button class="cal-agenda-expand-btn" id="btnExpandAgenda">Открыть задачи этого дня</button>`;
+  if (showSchedule) {
+    const ordered=[...tasks].sort((a,b) => (a.time || '99:99').localeCompare(b.time || '99:99') || a.title.localeCompare(b.title,'ru'));
+    const groups=calendarDayGroups(dateStr,ordered);
+    for (const group of groups) {
+      if (!group.slot) {
+        html += `<div class="cal-agenda-tasks cal-agenda-between">${group.tasks.map(t=>calendarTaskRow(t,dateStr)).join('')}</div>`;
+        continue;
+      }
+      const range=`${clockRangeTime(group.start)} — ${clockRangeTime(group.end)}`;
+      html += `<section class="cal-agenda-group" style="--agenda-color:${clockColor(group.slot)}" data-agenda-group="${group.start}">
+        <h3 class="cal-agenda-group-title"><span>${escapeHtml(group.label)}</span><span class="cal-agenda-group-period">${escapeHtml(range)}</span></h3>`;
+      if(group.tasks.length)html+=`<div class="cal-agenda-tasks">${group.tasks.map(t=>calendarTaskRow(t,dateStr)).join('')}</div>`;
+      html+='</section>';
     }
+    if(!groups.length)html+='<div class="cal-agenda-empty">На этот день нет расписания и задач со временем</div>';
   } else {
-    html += `<div class="cal-agenda-empty">На этот день ничего не запланировано</div>`;
+    const important=tasks.filter(task=>clockTaskMinutes(task)===null);
+    html+=important.length ? `<div class="cal-agenda-tasks">${important.map(t=>calendarTaskRow(t,dateStr,false)).join('')}</div>` : '<div class="cal-agenda-empty">На этот день нет задач без указанного времени</div>';
   }
 
   html += `</div>`; /* конец правой колонки */
@@ -2473,9 +2505,7 @@ function renderAgenda() {
     });
   });
 
-  document.getElementById('btnExpandAgenda')?.addEventListener('click', () => {
-    navigateToTasks(null, dateStr);
-  });
+
 }
 
 function navigateToTasks(taskId, dateStr = null) {
@@ -2496,6 +2526,12 @@ function navigateToTasks(taskId, dateStr = null) {
 }
 
 function initCalEvents() {
+  document.querySelectorAll('[data-agenda-view]').forEach(button=>button.addEventListener('click',()=>{
+    CalState.agendaView=button.dataset.agendaView;
+    Store.set('planner_calendar_agenda_view_v1',CalState.agendaView);
+    renderAgenda();
+  }));
+
   document.querySelectorAll('.cal-view-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       CalState.view = btn.dataset.view;
@@ -2580,6 +2616,17 @@ function clockSchedule(date) {
   const slots = data.overrides[date] || clockTemplates().find(t => t.id === clockDefaultTemplate(date)).slots;
   return Array.from({length:288}, (_, i) => slots[i] ? { ...slots[i] } : null);
 }
+function clockDayRanges(date,includeEmpty=false) {
+  const slots=clockSchedule(date),ranges=[];
+  for(let start=0;start<288;) {
+    const slot=slots[start];let end=start+1;
+    while(end<288 && !!slots[end]===!!slot && slots[end]?.label===slot?.label && slots[end]?.color===slot?.color)end++;
+    if(slot || includeEmpty)ranges.push({start,end,slot});
+    start=end;
+  }
+  return ranges;
+}
+function clockRangeTime(block) { return displayTime(block===288 && plannerSettings().timeFormat==='12' ? '00:00' : clockTime(block)); }
 function saveClockSlots(slots, source = null) {
   const data = clockData();
   data.overrides[ClockUI.date] = slots;
@@ -2676,14 +2723,7 @@ function renderClock() {
   m+=clockTaskMarkers(ClockUI.date, ClockUI.hour);
   m+=`<text x="200" y="193" class="clock-center-main">${slots.slice(ClockUI.hour*12,ClockUI.hour*12+12).filter(Boolean).length*5} мин</text><text x="200" y="225">блоки по 5 минут</text>`;
   document.getElementById('clockMinutes').innerHTML=m;
-  let summary='';
-  for(let i=0;i<288;) {
-    const slot=slots[i]; if(!slot){i++;continue;}
-    let end=i+1;
-    while(end<288&&slots[end]?.label===slot.label&&slots[end]?.color===slot.color) end++;
-    summary+=`<button type="button" data-clock-range="${i}" style="border-left:4px solid ${clockColor(slot)}"><time>${displayTime(clockTime(i))} — ${displayTime(clockTime(end))}</time><span>${escapeHtml(slot.label||'Без подписи')}</span></button>`;
-    i=end;
-  }
+  const summary=clockDayRanges(ClockUI.date).map(({start,end,slot})=>`<button type="button" data-clock-range="${start}" style="border-left:4px solid ${clockColor(slot)}"><time>${clockRangeTime(start)} — ${clockRangeTime(end)}</time><span>${escapeHtml(slot.label||'Без подписи')}</span></button>`).join('');
   document.getElementById('clockSummary').innerHTML=summary||'<p class="clock-description">День свободен. Выберите час и добавьте первый блок.</p>';
 }
 function refreshClockTemplates(selected) {
