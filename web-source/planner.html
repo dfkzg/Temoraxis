@@ -1209,7 +1209,7 @@ html:not([data-theme="space"]) .settings-stars { display:none; }
           <label class="settings-check"><input type="checkbox" id="settingsNotifications"> Напоминания о задачах</label>
           <p id="settingsNotificationState" class="settings-help"></p>
           <button class="btn-secondary" id="settingsNotificationPermission">Разрешить уведомления браузера</button>
-          <p class="settings-help">Напоминания работают, пока планёр открыт. Для задачи включите напоминание и укажите время. Браузер может задерживать уведомления в неактивной вкладке.</p>
+          <p class="settings-help">Напоминания работают, пока планёр открыт. Для задачи или особой даты включите напоминание и выберите, за сколько предупредить. Браузер может задерживать уведомления в неактивной вкладке.</p>
         </section>
         <section class="settings-card"><h2>Теги</h2>
           <div class="settings-actions"><input id="settingsNewTag" placeholder="Новый тег" maxlength="60" aria-label="Новый тег"><button class="btn-secondary" id="settingsAddTag">Добавить</button></div>
@@ -1245,6 +1245,8 @@ html:not([data-theme="space"]) .settings-stars { display:none; }
 
         <section class="settings-card settings-wide"><h2>Особые даты</h2>
           <div class="settings-actions"><input type="date" id="settingsSpecialDate" aria-label="Особая дата"><input id="settingsSpecialName" placeholder="Название события" maxlength="100" aria-label="Название события"><input type="color" id="settingsSpecialColor" value="#a78bfa" aria-label="Цвет события"><button class="btn-secondary" id="settingsSaveSpecial">Добавить дату</button></div>
+          <div class="settings-actions"><label class="settings-field">Напоминание<input type="checkbox" id="settingsSpecialReminder"></label><label class="settings-field">За<input type="number" id="settingsSpecialBefore" min="0" max="365" value="7" aria-label="За сколько напомнить"></label><label class="settings-field">Единица<select id="settingsSpecialUnit"><option value="days">Дни</option><option value="hours">Часы</option><option value="minutes">Минуты</option></select></label><label class="settings-field">Время события<input type="time" id="settingsSpecialTime" value="09:00"></label></div>
+          <p class="settings-help">Например: событие 10-го в 09:00, напомнить за 7 дней — уведомление придёт 3-го в 09:00.</p>
           <div id="settingsSpecialDates" class="settings-tag-list"></div>
           <p class="settings-help">Даты отмечаются в календаре. Для экспресс-панели экспортируйте их кнопкой в блоке «Данные» и импортируйте в Start_page.html.</p>
         </section>
@@ -1334,11 +1336,15 @@ html:not([data-theme="space"]) .settings-stars { display:none; }
         <div class="reminder-settings hidden" id="reminderSettings">
           <div class="form-row form-group">
             <div>
-              <label class="form-label" for="reminderMinutesInput">Напомнить за (мин)</label>
-              <input type="number" id="reminderMinutesInput" class="form-input" min="1" max="1440" value="5">
+              <label class="form-label" for="reminderMinutesInput">Напомнить за</label>
+              <input type="number" id="reminderMinutesInput" class="form-input" min="0" max="525600" value="5">
             </div>
+            <div><label class="form-label" for="reminderUnitInput">Единица времени</label><select id="reminderUnitInput" class="form-input"><option value="minutes">Минуты</option><option value="hours">Часы</option><option value="days">Дни</option></select></div>
+          </div>
+          <div class="form-group" id="reminderAtTimeRow"><label class="form-label" for="reminderAtTimeInput">Время события, если время задачи не указано</label><input type="time" id="reminderAtTimeInput" class="form-input" value="09:00"><p class="settings-help">Задача останется в «Задачах дня». Напоминание отсчитывается от этого времени.</p></div>
+          <div class="form-row form-group">
             <div>
-              <label class="form-label" for="reminderIntervalInput">Интервал (мин)</label>
+              <label class="form-label" for="reminderIntervalInput">Интервал повторения (мин)</label>
               <input type="number" id="reminderIntervalInput" class="form-input" min="1" max="1440" value="5">
             </div>
           </div>
@@ -1440,7 +1446,7 @@ function getAllTasks(includeDeleted = false) {
 }
 function reminderScheduleSignature(task) {
   const r=task.reminder||{};
-  return JSON.stringify([task.date||'',task.time||'',task.repeat||'none',[...(task.repeatDays||[])].sort(),!!r.enabled,Number(r.minutesBefore)||0,!!r.repeatUntilDone,Number(r.repeatInterval)||5]);
+  return JSON.stringify([task.date||'',task.time||'',task.repeat||'none',[...(task.repeatDays||[])].sort(),!!r.enabled,Number(r.minutesBefore)||0,r.atTime||'09:00',!!r.repeatUntilDone,Number(r.repeatInterval)||5]);
 }
 function resetEditedReminderMarks(previous,tasks) {
   const old=new Map(previous.map(task=>[task.id,task])),log=Store.get(STORAGE_KEYS.reminderLog,{});
@@ -1932,7 +1938,9 @@ function openTaskModal(taskId) {
 
   const reminder = taskId ? getTask(taskId)?.reminder : null;
   document.getElementById('reminderToggle').checked = !!reminder?.enabled;
-  document.getElementById('reminderMinutesInput').value = reminder?.minutesBefore ?? 5;
+  fillReminderLead('reminderMinutesInput','reminderUnitInput',reminder);
+  document.getElementById('reminderAtTimeInput').value=reminder?.atTime||'09:00';
+  document.getElementById('reminderAtTimeRow').hidden=!!document.getElementById('taskTimeInput').value;
   document.getElementById('reminderIntervalInput').value = reminder?.repeatInterval ?? 5;
   document.getElementById('reminderRepeatToggle').checked = !!reminder?.repeatUntilDone;
   soundOptions(document.getElementById('soundSelect'), reminder?.sound || plannerSettings().sound);
@@ -1956,6 +1964,21 @@ function closeTaskModal() {
   ModalState.editingTaskId = null;
 }
 
+function fillReminderLead(valueID,unitID,reminder={}) {
+  reminder=reminder||{};const unit=PlannerReminderRules.unit(reminder);
+  document.getElementById(unitID).value=unit;
+  document.getElementById(valueID).value=PlannerReminderRules.lead(reminder)/PlannerReminderRules.units[unit];
+  updateReminderLeadMax(valueID,unitID);
+}
+function updateReminderLeadMax(valueID,unitID) {
+  const input=document.getElementById(valueID),factor=PlannerReminderRules.units[document.getElementById(unitID).value]||1;
+  input.max=Math.floor(PlannerReminderRules.maxMinutes/factor);
+  if(Number(input.value)>Number(input.max))input.value=input.max;
+}
+function readReminderLead(valueID,unitID) {
+  const value=Number(document.getElementById(valueID).value),factor=PlannerReminderRules.units[document.getElementById(unitID).value]||1;
+  return Math.max(0,Math.min(PlannerReminderRules.maxMinutes,Math.round((Number.isFinite(value)?value:5)*factor)));
+}
 function collectFormData() {
   const title = document.getElementById('taskTitleInput').value.trim() || 'Без названия';
   const desc = document.getElementById('taskDescInput').value.trim();
@@ -1970,7 +1993,9 @@ function collectFormData() {
     repeatDays: [...ModalState.selectedRepeatDays],
     reminder: {
       enabled: document.getElementById('reminderToggle').checked,
-      minutesBefore: Math.max(1, Math.min(1440, Number(document.getElementById('reminderMinutesInput').value) || 5)),
+      minutesBefore: readReminderLead('reminderMinutesInput','reminderUnitInput'),
+      beforeUnit: document.getElementById('reminderUnitInput').value,
+      atTime: document.getElementById('reminderAtTimeInput').value||'09:00',
       sound: document.getElementById('soundSelect').value || plannerSettings().sound,
       repeatUntilDone: document.getElementById('reminderRepeatToggle').checked,
       repeatInterval: Math.max(1, Math.min(1440, Number(document.getElementById('reminderIntervalInput').value) || 5))
@@ -2081,6 +2106,11 @@ function initTasksUI() {
 
   modalSave?.addEventListener('click', () => {
     const data = collectFormData();
+    if(data.reminder.enabled){
+      const dateInput=document.getElementById('taskDateInput'),leadInput=document.getElementById('reminderMinutesInput');
+      leadInput.required=true;if(!leadInput.reportValidity())return;
+      if(!data.date){dateInput.setCustomValidity('Укажите дату события для напоминания.');dateInput.reportValidity();dateInput.setCustomValidity('');return;}
+    }
     if (!data.title || data.title === 'Без названия') {
       document.getElementById('taskTitleInput').style.borderColor = 'var(--danger)';
       setTimeout(() => document.getElementById('taskTitleInput').style.borderColor = '', 1500);
@@ -2930,30 +2960,43 @@ function refreshPlannerViews() {
   stopMonthTransition();applyTheme(Store.get(STORAGE_KEYS.theme,'dark'));closeTaskModal();closeTaskDetail();
   refreshClockTemplates();renderSettings();renderClock();renderCalendar();renderTasks();populateSoundSelect();
 }
+function openPlannerReminder(id,date) {
+  const event=PlannerReminderRules.specialTasks(Store.get(STORAGE_KEYS.specialDates,[])).find(entry=>entry.id===id);
+  if(!event){navigateToTasks(id,date);return;}
+  CalState.agendaDate=new Date((date||event.date)+'T12:00:00');CalState.agendaView='important';
+  CalState.monthYear={year:CalState.agendaDate.getFullYear(),month:CalState.agendaDate.getMonth()};
+  CalState.weekStart=new Date(CalState.agendaDate);CalState.weekStart.setDate(CalState.weekStart.getDate()-(CalState.weekStart.getDay()+6)%7);
+  document.querySelectorAll('.nav-btn').forEach(button=>button.classList.toggle('active',button.dataset.page==='calendar'));
+  document.querySelectorAll('.page').forEach(page=>page.classList.toggle('active',page.id==='page-calendar'));
+  renderCalendar();document.getElementById('calAgenda').scrollIntoView({block:'start'});
+}
 function showTaskReminder(task,date) {
   const key=task.id+'|'+date;
   document.getElementById('plannerReminderBanner')?.remove();
   const banner=document.createElement('div');banner.dataset.taskId=task.id;banner.dataset.taskDate=date;banner.id='plannerReminderBanner';banner.className='reminder-banner';banner.setAttribute('role','alert');
-  const text=document.createElement('p');text.textContent=displayTime(task.time)+' · '+task.title;
+  const text=document.createElement('p');text.textContent=date+' · '+displayTime(PlannerReminderRules.time(task))+' · '+task.title;
   const actions=document.createElement('div');actions.className='settings-actions';
-  const open=document.createElement('button');open.className='btn-secondary';open.textContent='Открыть задачу';open.onclick=()=>navigateToTasks(task.id,date);
+  const open=document.createElement('button');open.className='btn-secondary';open.textContent=task.source==='special-date'?'Открыть событие':'Открыть задачу';open.onclick=()=>openPlannerReminder(task.id,date);
   const dismiss=document.createElement('button');dismiss.className='btn-secondary';dismiss.textContent='Остановить';dismiss.onclick=()=>{const log=Store.get(STORAGE_KEYS.reminderLog,{});log[key]={at:Date.now(),dismissed:true};Store.set(STORAGE_KEYS.reminderLog,log);stopPlannerSound();banner.remove();};
   actions.append(open,dismiss);banner.append(text,actions);document.body.append(banner);
   playPlannerSound(task.reminder.sound||plannerSettings().sound);
   if('Notification' in window&&Notification.permission==='granted'){
-    try{const notification=new Notification('Temoraxis · напоминание',{body:text.textContent,tag:key});notification.onclick=()=>{window.focus();navigateToTasks(task.id,date);notification.close();};}catch(_){}
+    try{const notification=new Notification('Temoraxis · напоминание',{body:text.textContent,tag:key});notification.onclick=()=>{window.focus();openPlannerReminder(task.id,date);notification.close();};}catch(_){}
   }
 }
 function checkTaskReminders() {
   cleanPlannerHistory();
   if(!plannerSettings().notifications)return;
-  const nowTime=Date.now(),today=new Date();today.setHours(0,0,0,0);
-  const log=Store.get(STORAGE_KEYS.reminderLog,{});
-  for(let offset=0;offset<=1;offset++) {
-    const day=new Date(today);day.setDate(day.getDate()+offset);const date=toDateKey(day);
-    for(const task of getTasksForDate(date).filter(task=>task.status!=='done'&&(task.status!=='missed'||task._automaticMissed))) {
-      if(!task.reminder.enabled||clockTaskMinutes(task)===null)continue;
-      const due=new Date(date+'T'+task.time+':00').getTime()-(Number(task.reminder.minutesBefore)||0)*60000;
+  const nowTime=Date.now(),log=Store.get(STORAGE_KEYS.reminderLog,{});
+  const reminders=getAllTasks().concat(PlannerReminderRules.specialTasks(Store.get(STORAGE_KEYS.specialDates,[])));
+  for(const original of reminders) {
+    if(!original.reminder?.enabled||!PlannerReminderRules.time(original))continue;
+    for(const date of PlannerReminderRules.candidates(original,nowTime,log)) {
+      if(!taskOccursOnDate(original,date))continue;
+      const task=taskAtDate(original,date);
+      if(task.status==='done'||task.status==='missed'&&!task._automaticMissed)continue;
+      const due=new Date(date+'T'+PlannerReminderRules.time(task)+':00').getTime()-PlannerReminderRules.lead(task.reminder)*60000;
+      if(!Number.isFinite(due))continue;
       const key=task.id+'|'+date,previous=log[key];
       if(nowTime<due||previous?.dismissed)continue;
       if(!previous&&nowTime-due>10*60000)continue;
@@ -3048,6 +3091,8 @@ function initSettings() {
   bind('settingsImport','click',()=>document.getElementById('settingsImportFile').click());
   bind('settingsImportFile','change',async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>16*1024*1024)throw new Error('Файл слишком большой: максимум 16 МБ.');const data=validatePlannerBackup(JSON.parse(await file.text()));if(!confirm('Заменить данные планёра данными из файла? Текущие задачи и расписания будут заменены.'))return;stopPlannerSound();document.getElementById('plannerReminderBanner')?.remove();replacePlannerData(data);refreshPlannerViews();settingsMessage('Данные импортированы.');}catch(error){settingsMessage('Импорт не выполнен: '+error.message);}finally{e.target.value='';}});
   bind('settingsReset','click',async()=>{if(!confirm('Удалить все задачи, расписания, шаблоны, настройки и сохранённые звуки планёра? Это действие нельзя отменить.'))return;try{stopPlannerSound();await Store.audio.clear();replacePlannerData({});document.getElementById('plannerReminderBanner')?.remove();refreshPlannerViews();settingsMessage('Данные планёра сброшены.');}catch(_){settingsMessage('Не удалось полностью сбросить данные. Попробуйте ещё раз.');}});
+  bind('reminderUnitInput','change',()=>updateReminderLeadMax('reminderMinutesInput','reminderUnitInput'));
+  bind('taskTimeInput','change',()=>{document.getElementById('reminderAtTimeRow').hidden=!!document.getElementById('taskTimeInput').value;});
   bind('reminderToggle','change',e=>document.getElementById('reminderSettings').classList.toggle('hidden',!e.target.checked));
   bind('btnPlaySound','click',()=>playPlannerSound(document.getElementById('soundSelect').value));
   renderSettings();cleanPlannerHistory();
@@ -3081,21 +3126,27 @@ function initSpecialDates() {
   let editing=null;
   const date=document.getElementById('settingsSpecialDate'),name=document.getElementById('settingsSpecialName'),color=document.getElementById('settingsSpecialColor');
   date.value=todayKey();
+  const reminderToggle=document.getElementById('settingsSpecialReminder');
+  const resetReminder=()=>{reminderToggle.checked=false;fillReminderLead('settingsSpecialBefore','settingsSpecialUnit',{minutesBefore:10080,beforeUnit:'days'});document.getElementById('settingsSpecialTime').value='09:00';};
+  resetReminder();
+  document.getElementById('settingsSpecialUnit').onchange=()=>updateReminderLeadMax('settingsSpecialBefore','settingsSpecialUnit');
   // Добавляем идентификаторы старым записям, не меняя их даты и названия.
   const existing=Store.get(STORAGE_KEYS.specialDates,[]);
   if(existing.some(entry=>!entry.id))Store.set(STORAGE_KEYS.specialDates,existing.map(entry=>({...entry,id:entry.id||uid()})));
   document.getElementById('settingsSaveSpecial').onclick=()=>{
     if(!date.value||!name.value.trim()){settingsMessage('Укажите дату и название события.');return;}
-    const entries=Store.get(STORAGE_KEYS.specialDates,[]),entry={id:editing||uid(),date:date.value,name:name.value.trim(),color:color.value};
+    if(reminderToggle.checked){const input=document.getElementById('settingsSpecialBefore');input.required=true;if(!input.reportValidity())return;}
+    const entries=Store.get(STORAGE_KEYS.specialDates,[]),entry={id:editing||uid(),date:date.value,name:name.value.trim(),color:color.value,reminder:{enabled:reminderToggle.checked,minutesBefore:readReminderLead('settingsSpecialBefore','settingsSpecialUnit'),beforeUnit:document.getElementById('settingsSpecialUnit').value,atTime:document.getElementById('settingsSpecialTime').value||'09:00',repeatUntilDone:false}};
     const index=entries.findIndex(item=>item.id===editing);
     if(index>=0)entries[index]=entry;else entries.push(entry);
-    Store.set(STORAGE_KEYS.specialDates,entries);editing=null;name.value='';document.getElementById('settingsSaveSpecial').textContent='Добавить дату';
+    resetEditedReminderMarks(PlannerReminderRules.specialTasks(Store.get(STORAGE_KEYS.specialDates,[])),PlannerReminderRules.specialTasks(entries));
+    Store.set(STORAGE_KEYS.specialDates,entries);editing=null;name.value='';resetReminder();document.getElementById('settingsSaveSpecial').textContent='Добавить дату';
     renderSpecialDateSettings();renderCalendar();settingsMessage('Особая дата сохранена.');
   };
   document.getElementById('settingsSpecialDates').onclick=event=>{
     const edit=event.target.closest('[data-special-edit]'),remove=event.target.closest('[data-special-delete]');
-    if(edit){const entry=Store.get(STORAGE_KEYS.specialDates,[]).find(item=>item.id===edit.dataset.specialEdit);if(!entry)return;editing=entry.id;date.value=entry.date;name.value=entry.name;color.value=specialDateColor(entry);document.getElementById('settingsSaveSpecial').textContent='Сохранить изменения';name.focus();}
-    if(remove){Store.set(STORAGE_KEYS.specialDates,Store.get(STORAGE_KEYS.specialDates,[]).filter(item=>item.id!==remove.dataset.specialDelete));if(editing===remove.dataset.specialDelete){editing=null;name.value='';document.getElementById('settingsSaveSpecial').textContent='Добавить дату';}renderSpecialDateSettings();renderCalendar();}
+    if(edit){const entry=Store.get(STORAGE_KEYS.specialDates,[]).find(item=>item.id===edit.dataset.specialEdit);if(!entry)return;editing=entry.id;date.value=entry.date;name.value=entry.name;color.value=specialDateColor(entry);reminderToggle.checked=!!entry.reminder?.enabled;fillReminderLead('settingsSpecialBefore','settingsSpecialUnit',entry.reminder||{minutesBefore:10080,beforeUnit:'days'});document.getElementById('settingsSpecialTime').value=entry.reminder?.atTime||'09:00';document.getElementById('settingsSaveSpecial').textContent='Сохранить изменения';name.focus();}
+    if(remove){Store.set(STORAGE_KEYS.specialDates,Store.get(STORAGE_KEYS.specialDates,[]).filter(item=>item.id!==remove.dataset.specialDelete));if(editing===remove.dataset.specialDelete){editing=null;name.value='';resetReminder();document.getElementById('settingsSaveSpecial').textContent='Добавить дату';}renderSpecialDateSettings();renderCalendar();}
   };
   renderSpecialDateSettings();
 }

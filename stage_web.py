@@ -3,7 +3,7 @@ import json,shutil
 ROOT=Path(__file__).resolve().parent
 SOURCE=ROOT/'web-source'
 css=(SOURCE/'sync.css').read_text()
-common=(SOURCE/'cloud-config.js').read_text()+'\n'+(SOURCE/'supabase.js').read_text()+'\n'+(SOURCE/'sync.js').read_text().replace("/*SYNC_CSS*/''",json.dumps(css,ensure_ascii=False))
+common=(SOURCE/'reminders.js').read_text()+'\n'+(SOURCE/'cloud-config.js').read_text()+'\n'+(SOURCE/'supabase.js').read_text()+'\n'+(SOURCE/'sync.js').read_text().replace("/*SYNC_CSS*/''",json.dumps(css,ensure_ascii=False))
 for name in ['planner.html','Start_page.html']:
  s=(SOURCE/name).read_text()
  s=s.replace('<meta charset="UTF-8">','<meta charset="UTF-8">\n<link rel="manifest" href="manifest.webmanifest">\n<link rel="icon" href="icon.svg" type="image/svg+xml">\n<link rel="apple-touch-icon" href="icon-180.png">\n<meta name="theme-color" content="#0a0a12">',1)

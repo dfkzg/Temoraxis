@@ -40,6 +40,19 @@ public final class ReminderCalculatorTest {
   check(completed.has("task1|2026-11-14")&&next(edited,"2026-11-14T09:00:00Z",delivery,stopped,completed)==null,"time edit never reopens completed task");
   edited.put("status","todo");ReminderCalculator.resetForEdits(oldConfig,config,delivery,stopped,completed);
   check(!completed.has("task1|2026-11-14")&&next(edited,"2026-11-14T09:00:00Z",delivery,stopped,completed)!=null,"explicit reopening removes native done mark");
-  System.out.println("PASS: native reminder lead, expiration, daily/weekly recurrence, per-date completion, repeat interval, dismissal, distant schedule, timezone, edited time re-arms without replay on resume/title edits, completed task protection");
+  JSONObject birthday=task("none").put("date","2026-12-10").put("time","");
+  birthday.getJSONObject("reminder").put("minutesBefore",7*1440).put("atTime","09:00");
+  check(next(birthday,"2026-12-03T08:00:00Z",empty,empty,empty).getLong("due")==stamp("2026-12-03T09:00:00Z"),"untimed birthday reminds a week before without a task time");
+  birthday.getJSONObject("reminder").put("minutesBefore",4*1440);
+  check(next(birthday,"2026-12-03T08:00:00Z",empty,empty,empty).getLong("due")==stamp("2026-12-06T09:00:00Z"),"four-day lead is not clamped to one day");
+  JSONObject far=task("daily");far.getJSONObject("reminder").put("minutesBefore",30*1440);
+  JSONObject ahead=next(far,"2026-11-14T08:00:00Z",empty,empty,empty);
+  check(ahead.getString("date").equals("2026-12-14")&&ahead.getLong("due")==stamp("2026-11-14T09:00:00Z"),"daily reminder searches beyond the old sixteen-day horizon");
+  far.put("repeat","weekly").put("repeatDays",new JSONArray().put(3));
+  ahead=next(far,"2026-11-14T08:00:00Z",empty,empty,empty);
+  check(ahead.getString("date").equals("2026-12-16")&&ahead.getLong("due")==stamp("2026-11-16T09:00:00Z"),"weekly long-lead reminder retains weekday");
+  JSONObject inHours=task("none");inHours.getJSONObject("reminder").put("minutesBefore",120);
+  check(next(inHours,"2026-11-14T06:00:00Z",empty,empty,empty).getLong("due")==stamp("2026-11-14T07:00:00Z"),"two-hour lead");
+  System.out.println("PASS: week/day/hour lead, untimed event time, long-lead recurrence horizon, native reminder lead, expiration, daily/weekly recurrence, per-date completion, repeat interval, dismissal, distant schedule, timezone, edited time re-arms without replay on resume/title edits, completed task protection");
  }
 }

@@ -124,7 +124,7 @@ function observeLocalChanges(){
  observedDocument=current;
 }
 function scheduleNative(immediate=false){clearTimeout(nativeTimer);if(!window.PlannerAndroid)return;const send=()=>{
- try{const settings=read(KEYS.settings,{});const tasks=typeof getAllTasks==='function'?getAllTasks(true):read(KEYS.tasks,[]);PlannerAndroid.scheduleReminders(JSON.stringify({enabled:settings.notifications!==false,tasks}));}catch(_){}
+ try{const settings=read(KEYS.settings,{});const tasks=typeof getAllTasks==='function'?getAllTasks(true):read(KEYS.tasks,[]);PlannerAndroid.scheduleReminders(JSON.stringify({enabled:settings.notifications!==false,tasks:PlannerReminderRules.nativeTasks(tasks,read(KEYS.dates,[]))}));}catch(_){}
  };if(immediate)send();else nativeTimer=setTimeout(send,250);}
 function importNativeCompletions(list){
  if(!window.PlannerAndroid)return;
@@ -149,7 +149,7 @@ function initialize(){
  const grid=document.querySelector('#page-settings .settings-grid');
  if(grid){const card=document.createElement('section');card.className='settings-card settings-wide';card.innerHTML='<h2>Синхронизация устройств</h2><p class="settings-help" data-sync-summary>Войдите в аккаунт для синхронизации телефона и ПК.</p><button class="btn-secondary psync-launch">Подключить аккаунт / синхронизировать</button>';card.querySelector('button').onclick=open;grid.prepend(card);}
  const controls=document.querySelector('.footer-bar .controls');if(controls){const button=document.createElement('button');button.className='psync-launch';button.textContent='Синхронизация';button.onclick=open;controls.appendChild(button);}
- if(typeof Store!=='undefined'){const original=Store.set.bind(Store);Store.set=(key,value)=>{const enabled=read(KEYS.settings,{}).notifications!==false;const success=original(key,value);if(success&&(key===KEYS.tasks||(key===KEYS.settings&&enabled!==(value.notifications!==false))))scheduleNative(true);return success;};}
+ if(typeof Store!=='undefined'){const original=Store.set.bind(Store);Store.set=(key,value)=>{const enabled=read(KEYS.settings,{}).notifications!==false;const success=original(key,value);if(success&&(key===KEYS.tasks||key===KEYS.dates||(key===KEYS.settings&&enabled!==(value.notifications!==false))))scheduleNative(true);return success;};}
  if(!window.PlannerAndroid&&matchMedia('(pointer:coarse)').matches){const input=document.getElementById('settingsSoundsFolder');if(input){input.removeAttribute('webkitdirectory');input.accept='audio/*';input.multiple=true;document.getElementById('settingsChooseSounds').textContent='Выбрать звуки';const help=input.closest('.settings-card')?.querySelector('.settings-help');if(help)help.textContent='Выберите аудиофайлы на этом устройстве. Можно выделить несколько файлов.';}}
  if(window.PlannerAndroid){
   const input=document.getElementById('settingsSoundsFolder');if(input){input.removeAttribute('webkitdirectory');input.accept='audio/*';input.multiple=true;document.getElementById('settingsChooseSounds').textContent='Выбрать звуки';const help=input.closest('.settings-card')?.querySelector('.settings-help');if(help)help.textContent='Выберите аудиофайлы для прослушивания в приложении. Их можно выделить несколько сразу.';}

@@ -127,11 +127,12 @@ final class AlarmScheduler {
         String key=key(id,date);
         Intent open=new Intent(c,MainActivity.class).putExtra("taskId",id).putExtra("date",date).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent content=PendingIntent.getActivity(c,key.hashCode(),open,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
-        return new Notification.Builder(c,"planner_alarms_v2").setSmallIcon(R.drawable.ic_notification).setContentTitle(title).setContentText(date+" · "+time)
+        boolean event=false;JSONArray all=object(c,CONFIG).optJSONArray("tasks");if(all!=null)for(int i=0;i<all.length();i++){JSONObject item=all.optJSONObject(i);if(item!=null&&id.equals(item.optString("id"))){event="special-date".equals(item.optString("source"));break;}}
+        Notification.Builder builder=new Notification.Builder(c,"planner_alarms_v2").setSmallIcon(R.drawable.ic_notification).setContentTitle(title).setContentText(date+" · "+time)
             .setContentIntent(content).setAutoCancel(false).setCategory(Notification.CATEGORY_ALARM)
-            .setDeleteIntent(pending(c,"DISMISS",id,date))
-            .addAction(new Notification.Action.Builder(null,"Выполнено",pending(c,"DONE",id,date)).build())
-            .addAction(new Notification.Action.Builder(null,"Остановить",pending(c,"DISMISS",id,date)).build()).build();
+            .setDeleteIntent(pending(c,"DISMISS",id,date));
+        if(!event)builder.addAction(new Notification.Action.Builder(null,"Выполнено",pending(c,"DONE",id,date)).build());
+        return builder.addAction(new Notification.Action.Builder(null,"Остановить",pending(c,"DISMISS",id,date)).build()).build();
     }
 
 }

@@ -9,7 +9,7 @@ public final class ReminderCalculator {
  public static String scheduleSignature(JSONObject task){
   JSONObject r=task.optJSONObject("reminder");if(r==null)r=new JSONObject();
   TreeSet<Integer> days=new TreeSet<>();JSONArray raw=task.optJSONArray("repeatDays");if(raw!=null)for(int i=0;i<raw.length();i++)days.add(raw.optInt(i));
-  return task.optString("date")+"|"+task.optString("time")+"|"+task.optString("repeat")+"|"+days+"|"+r.optBoolean("enabled")+"|"+r.optInt("minutesBefore",5)+"|"+r.optBoolean("repeatUntilDone")+"|"+r.optInt("repeatInterval",5);
+  return task.optString("date")+"|"+task.optString("time")+"|"+task.optString("repeat")+"|"+days+"|"+r.optBoolean("enabled")+"|"+r.optInt("minutesBefore",5)+"|"+r.optString("atTime","09:00")+"|"+r.optBoolean("repeatUntilDone")+"|"+r.optInt("repeatInterval",5);
  }
  static void clearTask(JSONObject marks,String id){
   ArrayList<String> remove=new ArrayList<>();Iterator<String> keys=marks.keys();while(keys.hasNext()){String key=keys.next();if(key.startsWith(id+"|"))remove.add(key);}for(String key:remove)marks.remove(key);
@@ -29,13 +29,15 @@ public final class ReminderCalculator {
  public static JSONObject next(JSONObject task,ZoneId zone,long now,JSONObject sent,JSONObject dismissed,JSONObject done) throws JSONException {
   if(task==null||task.optBoolean("deleted"))return null;
   String id=task.optString("id"),time=task.optString("time");
-  if(!id.matches("[A-Za-z0-9_-]{1,128}")||!time.matches("([01]\\d|2[0-3]):[0-5]\\d"))return null;
   JSONObject reminder=task.optJSONObject("reminder");if(reminder==null||!reminder.optBoolean("enabled"))return null;
+  if(time.isEmpty())time=reminder.optString("atTime","09:00");
+  if(!id.matches("[A-Za-z0-9_-]{1,128}")||!time.matches("([01]\\d|2[0-3]):[0-5]\\d"))return null;
+  int minutesBefore=Math.max(0,Math.min(525600,reminder.optInt("minutesBefore",5)));
   boolean recurring=Arrays.asList("daily","weekly").contains(task.optString("repeat"));
   if(!recurring&&Arrays.asList("done","missed").contains(task.optString("status")))return null;
   LocalDate today=Instant.ofEpochMilli(now).atZone(zone).toLocalDate(),start;
   try{start=LocalDate.parse(task.optString("date"));}catch(Exception e){if(!recurring)return null;start=today;}
-  LocalDate first=recurring?today.minusDays(1):start;if(first.isBefore(start))first=start;
+  LocalDate first=recurring?today.plusDays(minutesBefore/1440).minusDays(1):start;if(first.isBefore(start))first=start;
   TreeSet<LocalDate> dates=new TreeSet<>();
   for(int day=0;day<(recurring?16:1);day++)dates.add(first.plusDays(day));
   if(recurring&&reminder.optBoolean("repeatUntilDone")){
@@ -49,7 +51,7 @@ public final class ReminderCalculator {
    JSONObject records=task.optJSONObject("occurrences"),record=records==null?null:records.optJSONObject(dateKey);
    if(record!=null&&Arrays.asList("done","missed").contains(record.optString("status")))continue;
    if(done.optBoolean(key)||dismissed.optBoolean(key))continue;
-   long due=date.atTime(LocalTime.parse(time)).atZone(zone).toInstant().toEpochMilli()-Math.max(0,Math.min(1440,reminder.optInt("minutesBefore",5)))*60000L;
+   long due=date.atTime(LocalTime.parse(time)).atZone(zone).toInstant().toEpochMilli()-minutesBefore*60000L;
    long last=sent.optLong(key,0);
    if(last>0){if(!reminder.optBoolean("repeatUntilDone"))continue;due=last+Math.max(1,Math.min(1440,reminder.optInt("repeatInterval",5)))*60000L;}
    else if(due<now-10*60000L)continue;
