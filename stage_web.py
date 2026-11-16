@@ -6,7 +6,8 @@ css=(SOURCE/'sync.css').read_text()
 common=(SOURCE/'reminders.js').read_text()+'\n'+(SOURCE/'cloud-config.js').read_text()+'\n'+(SOURCE/'supabase.js').read_text()+'\n'+(SOURCE/'sync.js').read_text().replace("/*SYNC_CSS*/''",json.dumps(css,ensure_ascii=False))
 for name in ['planner.html','Start_page.html']:
  s=(SOURCE/name).read_text()
- s=s.replace('<meta charset="UTF-8">','<meta charset="UTF-8">\n<link rel="manifest" href="manifest.webmanifest">\n<link rel="icon" href="icon.svg" type="image/svg+xml">\n<link rel="apple-touch-icon" href="icon-180.png">\n<meta name="theme-color" content="#0a0a12">',1)
+ theme_meta='' if '<meta name="theme-color"' in s else '\n<meta name="theme-color" content="#0a0a12">'
+ s=s.replace('<meta charset="UTF-8">','<meta charset="UTF-8">\n<link rel="manifest" href="manifest.webmanifest">\n<link rel="icon" href="icon.svg" type="image/svg+xml">\n<link rel="apple-touch-icon" href="icon-180.png">'+theme_meta,1)
  s=s.replace('Удалить все задачи, расписания, шаблоны, настройки и сохранённые звуки планёра? Это действие нельзя отменить.', 'Удалить все задачи, расписания, шаблоны, настройки и сохранённые звуки планёра? Если подключена синхронизация, удаление будет передано другим устройствам аккаунта. Это действие нельзя отменить.',1)
  s=s.replace('</body>','<script>\n'+common+'\n</script>\n</body>',1)
  if name=='planner.html':
