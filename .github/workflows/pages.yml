@@ -3,6 +3,9 @@ on:
   push:
     branches: [main]
     paths: ['docs/**', 'web-source/**', 'supabase/**', 'stage_web.py', 'tools/prepare_pages.py', 'tools/backup/**', '.github/workflows/pages.yml']
+  workflow_run:
+    workflows: [Publish Android release]
+    types: [completed]
   workflow_dispatch:
 permissions:
   contents: read
@@ -13,6 +16,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   deploy:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -20,6 +24,8 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Build public site
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: python tools/prepare_pages.py
       - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3

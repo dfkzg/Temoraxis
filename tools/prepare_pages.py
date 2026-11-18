@@ -1,12 +1,22 @@
 """Build the public download site without publishing maintenance documents or duplicate assets in Git."""
 from pathlib import Path
-import html,json,runpy,shutil
+import html,json,os,runpy,shutil,urllib.request
 ROOT=Path(__file__).resolve().parents[1]
 output=ROOT/'dist'/'pages'
 if output.exists():shutil.rmtree(output)
 output.mkdir(parents=True)
 for name in ['index.html','sitemap.xml','.nojekyll']:
     shutil.copy2(ROOT/'docs'/name,output/name)
+# Snapshot the actual published release, never an unreleased source version.
+if os.environ.get('GH_TOKEN'):
+    request=urllib.request.Request('https://api.github.com/repos/dfkzg/Temoraxis/releases/latest',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'})
+    with urllib.request.urlopen(request,timeout=30) as response:release=json.load(response)
+    if release.get('draft') or release.get('prerelease'):raise ValueError('Expected a published stable release')
+    public={key:release.get(key) for key in ['tag_name','published_at','body','draft','prerelease']}
+    public['assets']=[{key:asset.get(key) for key in ['name','size','digest','browser_download_url']} for asset in release['assets']]
+    snapshot=json.dumps(public,ensure_ascii=False).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
+    page=output/'index.html'
+    page.write_text(page.read_text().replace('const PUBLISHED_RELEASE=null;','const PUBLISHED_RELEASE='+snapshot+';'))
 for name in ['icon.svg','icon-512.png']:
     shutil.copy2(ROOT/'web-source'/name,output/name)
 # Build a browser app from the same sources as Android; never maintain another HTML copy.
