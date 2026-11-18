@@ -55,7 +55,7 @@ final class PermissionSetup {
             }
         }
         active=false;
-        Toast.makeText(activity,"Проверка завершена. Повторить: ⋮ → Разрешения и работа в фоне",Toast.LENGTH_LONG).show();
+        Toast.makeText(activity,"Проверка завершена. Повторить можно в настройках через «Меню приложения».",Toast.LENGTH_LONG).show();
     }
     void show(String title,String message,Runnable request){
         new AlertDialog.Builder(activity).setTitle(title).setMessage(message)

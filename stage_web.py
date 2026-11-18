@@ -11,10 +11,10 @@ for name in ['planner.html','Start_page.html']:
  s=s.replace('Удалить все задачи, расписания, шаблоны, настройки и сохранённые звуки планёра? Это действие нельзя отменить.', 'Удалить все задачи, расписания, шаблоны, настройки и сохранённые звуки планёра? Если подключена синхронизация, удаление будет передано другим устройствам аккаунта. Это действие нельзя отменить.',1)
  s=s.replace('</body>','<script>\n'+common+'\n</script>\n</body>',1)
  if name=='planner.html':
-  s=s.replace("e.target.checked?'Напоминания включены. Для системных уведомлений разрешите их в браузере.'","e.target.checked?(window.PlannerAndroid?'Напоминания включены. Разрешения Android доступны в меню ⋮.':'Напоминания включены. Для системных уведомлений разрешите их в браузере.')",1)
+  s=s.replace("e.target.checked?'Напоминания включены. Для системных уведомлений разрешите их в браузере.'","e.target.checked?(window.PlannerAndroid?'Напоминания включены. Разрешения Android доступны в настройках → Меню приложения.':'Напоминания включены. Для системных уведомлений разрешите их в браузере.')",1)
   s=s.replace('function checkTaskReminders() {\n  cleanPlannerHistory();','function checkTaskReminders() {\n  cleanPlannerHistory();\n  if(window.PlannerAndroid)return;',1)
   s=s.replace("const permission='Notification' in window?Notification.permission:'unsupported';", "const permission=window.PlannerAndroid?'native':('Notification' in window?Notification.permission:'unsupported');")
-  s=s.replace("{granted:'Уведомления браузера разрешены.'", "{native:'Уведомления Android. Разрешения можно проверить в меню приложения ⋮.',granted:'Уведомления браузера разрешены.'",1)
+  s=s.replace("{granted:'Уведомления браузера разрешены.'", "{native:'Уведомления Android. Разрешения можно проверить в настройках → Меню приложения.',granted:'Уведомления браузера разрешены.'",1)
   s=s.replace("bind('settingsNotificationPermission','click',async()=>{if(!('Notification'in window))return;", "bind('settingsNotificationPermission','click',async()=>{if(window.PlannerAndroid){PlannerAndroid.requestNotifications();return;}if(!('Notification'in window))return;",1)
   s=s.replace('function downloadPlannerJSON(value,name) {', "function downloadPlannerJSON(value,name) {\n  if(window.PlannerAndroid){PlannerAndroid.exportDocument(name,JSON.stringify(value,null,2));return;}",1)
   a=s.index('function hardDeleteTask(');b=s.index('\n}',a)
