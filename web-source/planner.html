@@ -670,6 +670,10 @@ textarea.form-input { resize: vertical; min-height: 60px; }
   color: var(--accent); 
 }
 
+/* Выходные соседних месяцев не получают яркое оформление текущего месяца. */
+#calGrid .cal-cell.other.weekend:not(.today) { opacity:.35; background:transparent; border-color:transparent; }
+#calGrid .cal-cell.other.weekend:not(.today) .cal-cell-number { color:var(--text-mute); }
+
 /* Точки задач */
 .cal-dots {
   display: flex; 
