@@ -82,7 +82,7 @@ public class MainActivity extends Activity {
     void applyNativeTheme(String theme){
         if(!Arrays.asList("dark","light","space").contains(theme))return;
         boolean light="light".equals(theme),space="space".equals(theme);
-        int background=Color.parseColor(light?"#f4f5fa":space?"#05060f":"#0a0a12"),bar=Color.parseColor(light?"#ffffff":space?"#0a0c1a":"#12121c");
+        int background=Color.parseColor(light?"#f4f5fa":space?"#07060f":"#0a0a12"),bar=Color.parseColor(light?"#ffffff":space?"#07060f":"#12121c");
         if(root!=null)root.setBackgroundColor(background);if(web!=null)web.setBackgroundColor(background);
         if(toolbar!=null){toolbar.setBackgroundColor(bar);for(int i=0;i<toolbar.getChildCount();i++)if(toolbar.getChildAt(i) instanceof TextView)((TextView)toolbar.getChildAt(i)).setTextColor(Color.parseColor(light?"#39405a":"#b9c3ff"));}
         getWindow().setStatusBarColor(background);getWindow().setNavigationBarColor(background);
