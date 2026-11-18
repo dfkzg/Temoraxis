@@ -35,7 +35,7 @@ if os.environ.get('GH_TOKEN'):
     import zipfile,hashlib
     digest=apk_asset.get('digest')
     if digest and digest!='sha256:'+hashlib.sha256(apk_bytes).hexdigest():raise ValueError('APK checksum mismatch')
-    with zipfile.ZipFile(downloads/'temoraxis-user-kit.zip','w',zipfile.ZIP_DEFLATED) as archive:
+    with zipfile.ZipFile(downloads/'temoraxis-desktop-android-kit.zip','w',zipfile.ZIP_DEFLATED) as archive:
         for name in ['planner.html','Start_page.html']:
             archive.write(downloads/name,'Temoraxis/'+name)
         archive.writestr('Temoraxis/temoraxis-android.apk',apk_bytes)
