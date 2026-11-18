@@ -95,7 +95,7 @@ jobs:
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             gh release create "$TAG" --target "$GITHUB_SHA" --draft --title "Temoraxis $VERSION" --notes-file dist/release-notes.md
           fi
-          gh release upload "$TAG" dist/temoraxis-android.apk dist/temoraxis-complete-kit.zip dist/latest.json dist/SHA256SUMS.txt --clobber
+          gh release upload "$TAG" dist/temoraxis-android.apk dist/temoraxis-user-kit.zip dist/planner.html dist/Start_page.html dist/latest.json dist/SHA256SUMS.txt --clobber
           gh release edit "$TAG" --draft=false --latest
       - name: Remove private signing material
         if: always()
