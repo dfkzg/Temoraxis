@@ -994,6 +994,18 @@ textarea.form-input { resize: vertical; min-height: 60px; }
 .theme-welcome { padding:18px; margin-bottom:20px; border:1px solid var(--border); border-radius:var(--r-lg); background:var(--bg-card); }
 .theme-welcome h2 { margin-bottom:8px; font-size:18px; }
 .theme-welcome p { color:var(--text-dim); font-size:13px; }
+.settings-tabs { display:none; }
+.settings-panel { display:contents; }
+@media(max-width:899px) {
+ .settings-tabs { display:flex; gap:6px; overflow-x:auto; margin:0 0 16px; padding:4px 2px 8px; scrollbar-width:thin; }
+ .settings-tabs button { flex:0 0 auto; min-height:44px; padding:9px 12px; border:1px solid var(--border); border-radius:var(--r-md); background:var(--bg-card); color:var(--text-dim); font:inherit; font-size:13px; cursor:pointer; }
+ .settings-tabs button[aria-selected="true"] { color:var(--accent); background:var(--accent-soft); border-color:var(--accent); }
+ .settings-tabs button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+ .settings-tabs::-webkit-scrollbar { height:4px; }
+ .settings-tabs::-webkit-scrollbar-thumb { background:var(--border-hi); border-radius:4px; }
+ .settings-panel { display:none; min-width:0; }
+ .settings-panel.active { display:grid; grid-template-columns:minmax(0,1fr); gap:14px; }
+}
 .settings-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
 .settings-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--r-xl); padding:24px; min-width:0; }
 .settings-card h2 { font-size:17px; margin-bottom:20px; }
@@ -1213,15 +1225,16 @@ html[data-theme="space"] .settings-stars { display:block; }
     <section class="page" id="page-settings">
       <h1 class="page-title">Настройки</h1>
       <p id="settingsStatus" class="settings-status" role="status" aria-live="polite">Изменения сохраняются автоматически.</p>
+      <div id="settingsTabs" class="settings-tabs" role="tablist" aria-label="Разделы настроек"></div>
       <div class="settings-grid">
-        <section class="settings-card"><h2>Внешний вид и время</h2>
+        <section class="settings-card" data-settings-group="appearance"><h2>Внешний вид и время</h2>
           <p class="settings-help">Тема оформления</p>
           <div id="settingsTheme" class="theme-options" data-theme-options role="group" aria-label="Тема оформления"></div>
           <label class="settings-field">Формат времени<select id="settingsTimeFormat"><option value="24">24 часа</option><option value="12">12 часов</option></select></label>
           <label class="settings-field">Порог подсветки часа, мин<input type="number" id="settingsThreshold" min="5" max="60" step="5"></label>
           <p class="settings-help">Час подсвечивается, когда занято не меньше указанного числа минут.</p>
         </section>
-        <section class="settings-card"><h2>Звуки и громкость</h2>
+        <section class="settings-card" data-settings-group="reminders"><h2>Звуки и громкость</h2>
           <p class="settings-help">Выберите папку <span class="settings-path">sounds</span>. Аудиофайлы сохраняются в этом браузере.</p>
           <button class="btn-secondary" id="settingsChooseSounds">Выбрать папку sounds</button>
           <input type="file" id="settingsSoundsFolder" webkitdirectory multiple hidden>
@@ -1230,28 +1243,28 @@ html[data-theme="space"] .settings-stars { display:block; }
           <label class="settings-field">Громкость <span id="settingsVolumeValue"></span><input type="range" id="settingsVolume" min="0" max="100" step="1"></label>
           <div class="settings-actions"><button class="btn-secondary" id="settingsPlaySound">▶ Прослушать</button><button class="btn-secondary" id="settingsStopSound">Остановить</button></div>
         </section>
-        <section class="settings-card"><h2>Уведомления</h2>
+        <section class="settings-card" data-settings-group="reminders"><h2>Уведомления</h2>
           <label class="settings-check"><input type="checkbox" id="settingsNotifications"> Напоминания о задачах</label>
           <p id="settingsNotificationState" class="settings-help"></p>
           <button class="btn-secondary" id="settingsNotificationPermission">Разрешить уведомления браузера</button>
           <p class="settings-help">Напоминания работают, пока планёр открыт. Для задачи или особой даты включите напоминание и выберите, за сколько предупредить. Браузер может задерживать уведомления в неактивной вкладке.</p>
         </section>
-        <section class="settings-card"><h2>Теги</h2>
+        <section class="settings-card" data-settings-group="planning"><h2>Теги</h2>
           <div class="settings-actions"><input id="settingsNewTag" placeholder="Новый тег" maxlength="60" aria-label="Новый тег"><button class="btn-secondary" id="settingsAddTag">Добавить</button></div>
           <div id="settingsTags" class="settings-tag-list"></div>
           <p class="settings-help">Удаление тега убирает его из задач. Задачи сохраняются.</p>
         </section>
-        <section class="settings-card"><h2>Шаблоны часов</h2><div id="settingsTemplates" class="settings-template-list"></div>
+        <section class="settings-card" data-settings-group="planning"><h2>Шаблоны часов</h2><div id="settingsTemplates" class="settings-template-list"></div>
           <button class="btn-secondary" id="settingsOpenClock">Открыть часы-планёр</button>
           <p class="settings-help">Стандартные шаблоны сохраняются. Удаление своего шаблона не меняет расписание, уже применённое к датам.</p>
         </section>
-        <section class="settings-card"><h2>История</h2>
+        <section class="settings-card" data-settings-group="history"><h2>История</h2>
           <label class="settings-field">Хранить завершённые и пропущенные задачи<select id="settingsHistory"><option value="1">1 месяц</option><option value="2">2 месяца</option><option value="3">3 месяца</option></select></label>
           <p class="settings-help">Старые завершённые, пропущенные и удалённые задачи очищаются раз в день. Актуальные задачи сохраняются.</p>
           <button class="btn-secondary" id="settingsViewHistory" aria-expanded="false" aria-controls="plannerHistory">Посмотреть историю</button>
         </section>
 
-        <section class="settings-card settings-wide" id="plannerHistory" hidden aria-labelledby="plannerHistoryTitle">
+        <section class="settings-card settings-wide" id="plannerHistory" data-settings-group="history" hidden aria-labelledby="plannerHistoryTitle">
           <div class="history-heading"><h2 id="plannerHistoryTitle" tabindex="-1">История задач</h2><button class="btn-secondary" id="historyClose">Закрыть</button></div>
           <div class="tasks-toolbar">
             <div class="tasks-filters">
@@ -1268,14 +1281,14 @@ html[data-theme="space"] .settings-stars { display:block; }
           <div class="tasks-list" id="historyList"></div>
         </section>
 
-        <section class="settings-card settings-wide"><h2>Особые даты</h2>
+        <section class="settings-card settings-wide" data-settings-group="planning"><h2>Особые даты</h2>
           <div class="settings-actions"><input type="date" id="settingsSpecialDate" aria-label="Особая дата"><input id="settingsSpecialName" placeholder="Название события" maxlength="100" aria-label="Название события"><input type="color" id="settingsSpecialColor" value="#a78bfa" aria-label="Цвет события"><button class="btn-secondary" id="settingsSaveSpecial">Добавить дату</button></div>
           <div class="settings-actions"><label class="settings-field">Напоминание<input type="checkbox" id="settingsSpecialReminder"></label><label class="settings-field">За<input type="number" id="settingsSpecialBefore" min="0" max="365" value="7" aria-label="За сколько напомнить"></label><label class="settings-field">Единица<select id="settingsSpecialUnit"><option value="days">Дни</option><option value="hours">Часы</option><option value="minutes">Минуты</option></select></label><label class="settings-field">Время события<input type="time" id="settingsSpecialTime" value="09:00"></label></div>
           <p class="settings-help">Например: событие 10-го в 09:00, напомнить за 7 дней — уведомление придёт 3-го в 09:00.</p>
           <div id="settingsSpecialDates" class="settings-tag-list"></div>
           <p class="settings-help">Особые даты автоматически отображаются в календаре и экспресс-панели.</p>
         </section>
-        <section class="settings-card settings-wide"><h2>Данные</h2>
+        <section class="settings-card settings-wide" data-settings-group="data"><h2>Данные</h2>
           <div class="settings-actions"><button class="btn-secondary" id="settingsExport">Экспорт всех данных · JSON</button><button class="btn-secondary" id="settingsImport">Импорт · JSON</button><button class="btn-secondary" id="settingsExportDates">Экспорт особых дат</button><button class="btn-danger" id="settingsReset">Сбросить данные планёра</button></div>
           <input type="file" id="settingsImportFile" accept=".json,application/json" hidden>
           <p class="settings-help">Импорт заменяет данные планёра после подтверждения. Аудиофайлы в JSON не включаются — папку sounds можно выбрать снова. Данные экспресс-панели сохраняются.</p>
@@ -2954,6 +2967,7 @@ function renderSettingsTemplates() {
   document.getElementById('settingsTemplates').innerHTML=clockTemplates().map(template=>`<div class="settings-row"><span>${escapeHtml(template.name)}${template.builtin?' · стандартный':''}</span>${template.builtin?'':`<button type="button" class="btn-secondary" data-settings-delete-template="${escapeHtml(template.id)}">Удалить</button>`}</div>`).join('');
 }
 function renderSettings() {
+  renderSettingsTabs();
   const settings=plannerSettings();
   applyTheme(Store.get(STORAGE_KEYS.theme,'dark'));
   document.getElementById('settingsTimeFormat').value=settings.timeFormat;
@@ -3118,6 +3132,50 @@ function initHistory() {
   renderHistory();
 }
 
+const SettingsTabs={groups:{appearance:'Оформление',reminders:'Напоминания',planning:'Планы',history:'История',data:'Данные'},active:Store.get('planner_settings_tab_v1','appearance'),media:matchMedia('(max-width:899px)')};
+function registerSettingsCard(card,group,order) {
+  const panel=document.getElementById('settings-panel-'+group);
+  if(!panel)return;
+  card.dataset.settingsGroup=group;card.style.order=String(order);panel.appendChild(card);
+}
+function renderSettingsTabs() {
+  const tabs=document.getElementById('settingsTabs');if(!tabs)return;
+  for(const button of tabs.querySelectorAll('[data-settings-tab]')){
+    const active=button.dataset.settingsTab===SettingsTabs.active;
+    button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;
+  }
+  for(const panel of document.querySelectorAll('[data-settings-panel]')){
+    panel.classList.toggle('active',panel.dataset.settingsPanel===SettingsTabs.active);
+    if(SettingsTabs.media.matches){panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby','settings-tab-'+panel.dataset.settingsPanel);}
+    else{panel.removeAttribute('role');panel.removeAttribute('aria-labelledby');}
+  }
+  const selected=tabs.querySelector('[aria-selected="true"]');
+  if(SettingsTabs.media.matches&&selected&&tabs.clientWidth){const a=selected.getBoundingClientRect(),b=tabs.getBoundingClientRect();if(a.left<b.left)tabs.scrollLeft-=b.left-a.left;else if(a.right>b.right)tabs.scrollLeft+=a.right-b.right;}
+}
+function selectSettingsTab(group,focus=false) {
+  if(!Object.prototype.hasOwnProperty.call(SettingsTabs.groups,group))return;
+  SettingsTabs.active=group;Store.set('planner_settings_tab_v1',group);renderSettingsTabs();
+  if(focus)document.getElementById('settings-tab-'+group).focus({preventScroll:true});
+}
+function initSettingsTabs() {
+  const grid=document.querySelector('#page-settings .settings-grid'),tabs=document.getElementById('settingsTabs'),cards=[...grid.children];
+  if(!Object.prototype.hasOwnProperty.call(SettingsTabs.groups,SettingsTabs.active))SettingsTabs.active='appearance';
+  for(const [group,label] of Object.entries(SettingsTabs.groups)){
+    const button=document.createElement('button');button.type='button';button.setAttribute('role','tab');button.id='settings-tab-'+group;button.dataset.settingsTab=group;button.textContent=label;button.setAttribute('aria-controls','settings-panel-'+group);tabs.appendChild(button);
+    const panel=document.createElement('div');panel.className='settings-panel';panel.id='settings-panel-'+group;panel.dataset.settingsPanel=group;grid.appendChild(panel);
+  }
+  cards.forEach((card,index)=>registerSettingsCard(card,card.dataset.settingsGroup,index));
+  tabs.addEventListener('click',event=>{const button=event.target.closest('[data-settings-tab]');if(button)selectSettingsTab(button.dataset.settingsTab);});
+  tabs.addEventListener('keydown',event=>{
+    if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+    const button=event.target.closest('[data-settings-tab]');if(!button)return;
+    const keys=Object.keys(SettingsTabs.groups),index=keys.indexOf(button.dataset.settingsTab);
+    const next=event.key==='Home'?0:event.key==='End'?keys.length-1:(index+(event.key==='ArrowRight'?1:-1)+keys.length)%keys.length;
+    event.preventDefault();selectSettingsTab(keys[next],true);
+  });
+  SettingsTabs.media.addEventListener('change',()=>{const panel=document.activeElement?.closest('[data-settings-panel]');if(SettingsTabs.media.matches&&panel)SettingsTabs.active=panel.dataset.settingsPanel;renderSettingsTabs();});
+  renderSettingsTabs();
+}
 function initSettings() {
   if(!document.querySelector('.settings-stars')){const stars=document.createElement('div');stars.className='settings-stars';stars.setAttribute('aria-hidden','true');document.body.prepend(stars);}
   const bind=(id,event,handler)=>document.getElementById(id).addEventListener(event,handler);
@@ -3152,7 +3210,7 @@ function initSettings() {
   bind('taskTimeInput','change',()=>{document.getElementById('reminderAtTimeRow').hidden=!!document.getElementById('taskTimeInput').value;});
   bind('reminderToggle','change',e=>document.getElementById('reminderSettings').classList.toggle('hidden',!e.target.checked));
   bind('btnPlaySound','click',()=>playPlannerSound(document.getElementById('soundSelect').value));
-  renderSettings();cleanPlannerHistory();
+  initSettingsTabs();renderSettings();cleanPlannerHistory();
   setInterval(()=>{checkTaskReminders();if(document.hidden)return;refreshTaskState();},15000);
 }
 
