@@ -24,9 +24,10 @@ runpy.run_path(str(ROOT/'stage_web.py'))
 app=output/'app';app.mkdir()
 for name in ['planner.html','Start_page.html','manifest.webmanifest','sw.js','icon.svg','icon-180.png','icon-192.png','icon-512.png','THIRD-PARTY.txt']:
     shutil.copy2(ROOT/'server'/'web'/name,app/name)
+standalone_html=runpy.run_path(str(ROOT/'tools'/'user_html.py'))['standalone_html']
 downloads=output/'downloads';downloads.mkdir()
 for name in ['planner.html','Start_page.html']:
-    shutil.copy2(ROOT/'server'/'web'/name,downloads/name)
+    (downloads/name).write_text(standalone_html(name))
 # User bundle uses the existing published APK; no new Android build is needed.
 if os.environ.get('GH_TOKEN'):
     apk_asset=next(a for a in public['assets'] if a['name']=='temoraxis-android.apk')
@@ -35,8 +36,8 @@ if os.environ.get('GH_TOKEN'):
     digest=apk_asset.get('digest')
     if digest and digest!='sha256:'+hashlib.sha256(apk_bytes).hexdigest():raise ValueError('APK checksum mismatch')
     with zipfile.ZipFile(downloads/'temoraxis-user-kit.zip','w',zipfile.ZIP_DEFLATED) as archive:
-        for name in ['planner.html','Start_page.html','manifest.webmanifest','sw.js','icon.svg','icon-180.png','icon-192.png','icon-512.png','THIRD-PARTY.txt']:
-            archive.write(ROOT/'server'/'web'/name,'Temoraxis/'+name)
+        for name in ['planner.html','Start_page.html']:
+            archive.write(downloads/name,'Temoraxis/'+name)
         archive.writestr('Temoraxis/temoraxis-android.apk',apk_bytes)
         archive.write(ROOT/'docs'/'USER-README.txt','Temoraxis/README.txt')
 for path in app.glob('*.html'):

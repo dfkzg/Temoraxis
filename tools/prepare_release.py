@@ -22,10 +22,11 @@ meta.update(apk='temoraxis-android.apk',apkSha256=hashlib.sha256(apk.read_bytes(
 (dist/'latest.json').write_text(json.dumps(meta,ensure_ascii=False,indent=2)+'\n')
 import runpy,shutil
 runpy.run_path(str(ROOT/'stage_web.py'))
-web_names=['planner.html','Start_page.html','manifest.webmanifest','sw.js','icon.svg','icon-180.png','icon-192.png','icon-512.png','THIRD-PARTY.txt']
-for name in ['planner.html','Start_page.html']:shutil.copy2(ROOT/'server'/'web'/name,dist/name)
+standalone_html=runpy.run_path(str(ROOT/'tools'/'user_html.py'))['standalone_html']
+web_names=['planner.html','Start_page.html']
+for name in web_names:(dist/name).write_text(standalone_html(name))
 with zipfile.ZipFile(dist/'temoraxis-user-kit.zip','w',zipfile.ZIP_DEFLATED) as archive:
- for name in web_names:archive.write(ROOT/'server'/'web'/name,'Temoraxis/'+name)
+ for name in web_names:archive.write(dist/name,'Temoraxis/'+name)
  archive.write(apk,'Temoraxis/temoraxis-android.apk')
  archive.writestr('Temoraxis/README.txt',"Temoraxis "+version+"\n\nAndroid: установите temoraxis-android.apk поверх прежней версии.\nПК: распакуйте архив и откройте planner.html или Start_page.html в браузере.\nХранение данных локальных HTML зависит от браузера. Регулярно делайте экспорт JSON.\nДля общего хранилища страниц, облачной синхронизации и веб-уведомлений рекомендуем веб-версию: https://dfkzg.github.io/Temoraxis/app/planner.html\nСистемные фоновые будильники доступны в APK при выданных разрешениях.\nИсходники: https://github.com/dfkzg/Temoraxis\n")
 names=['temoraxis-android.apk','temoraxis-user-kit.zip','latest.json','planner.html','Start_page.html']
