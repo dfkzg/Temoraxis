@@ -1,0 +1,25 @@
+const {chromium}=require('playwright');const assert=require('node:assert/strict');const BASE=process.env.PLANNER_TEST_URL;
+(async()=>{
+ const browser=await chromium.launch();const context=await browser.newContext();const planner=await context.newPage(),start=await context.newPage(),errors=[];
+ for(const p of [planner,start])p.on('pageerror',e=>errors.push(e.message));
+ const event={id:'shared-date',date:'2090-12-10',name:'Общая дата',color:'#a78bfa'};
+ await planner.goto(BASE+'/planner.html');await start.goto(BASE+'/Start_page.html');
+ assert.equal(await start.locator('#startSpecialImport').count(),0);assert.equal(await start.locator('#startSpecialFile').count(),0);assert.equal(await start.locator('.footer-bar .psync-launch').count(),1,'Cloud connection remains available');
+ await start.evaluate(()=>{calYear=2090;calMonth=11;renderCalendar();});
+ await planner.evaluate(event=>Store.set(STORAGE_KEYS.specialDates,[event]),event);
+ await start.waitForFunction(()=>document.getElementById('startSpecialList').textContent.includes('Общая дата'));
+ assert.equal(await start.locator('.cal-day.has-special').getAttribute('title'),'Общая дата');
+ await planner.evaluate(event=>Store.set(STORAGE_KEYS.specialDates,[{...event,name:'Изменённая дата'}]),event);
+ await start.waitForFunction(()=>document.getElementById('startSpecialList').textContent.includes('Изменённая дата'));
+ assert.equal(await start.locator('.cal-day.has-special').getAttribute('title'),'Изменённая дата');
+ await start.evaluate(event=>localStorage.setItem('startpage_special_dates_v1',JSON.stringify([{...event,name:'Старая копия'}])),event);
+ await planner.evaluate(()=>Store.set(STORAGE_KEYS.specialDates,[]));
+ await start.waitForFunction(()=>document.querySelectorAll('#startSpecialList .start-special-item').length===0);
+ assert.equal(await start.locator('.cal-day.has-special').count(),0);await start.reload();assert.doesNotMatch(await start.locator('#startSpecialList').innerText(),/Старая копия/,'An empty shared list overrides legacy imports');
+ await start.evaluate(async event=>{calYear=2090;calMonth=11;const doc=PlannerSync.documentSnapshot();doc.specialDates=[{...event,name:'Из облака'}];await PlannerSync.applyDocument(doc);},event);
+ assert.match(await start.locator('#startSpecialList').innerText(),/Из облака/);assert.equal(await start.locator('.cal-day.has-special').getAttribute('title'),'Из облака','Cloud updates refresh current-tab calendar markers');
+ assert.deepEqual(errors,[]);await context.close();
+ const legacy=await browser.newContext();await legacy.addInitScript(()=>localStorage.setItem('startpage_special_dates_v1',JSON.stringify([{date:'2090-12-10',name:'Ранее импортированная дата',color:'#a78bfa'}])));
+ const page=await legacy.newPage();await page.goto(BASE+'/Start_page.html');const migrated=await page.evaluate(()=>JSON.parse(localStorage.getItem('planner_special_dates_v1')));assert.equal(migrated[0].name,'Ранее импортированная дата');assert(migrated[0].id);await page.goto(BASE+'/planner.html');assert.equal(await page.evaluate(()=>Store.get(STORAGE_KEYS.specialDates,[])[0].id),migrated[0].id);
+ await browser.close();console.log('PASS: shared special dates, cross-tab edits/deletion, cloud update markers, legacy migration without resurrecting deleted dates and retained cloud sync.');
+})().catch(e=>{console.error(e);process.exit(1);});

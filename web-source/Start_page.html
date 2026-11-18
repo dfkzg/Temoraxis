@@ -206,9 +206,8 @@
 .start-special-panel { width:min(100%,1100px); margin:24px auto; padding:18px 22px; border:1px solid var(--border); border-radius:18px; background:var(--bg-card); text-align:left; }
 .start-special-heading { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; }
 .start-special-heading h2 { font-size:16px; margin:0; }
-.start-special-heading button { padding:8px 12px; border:1px solid var(--border); border-radius:10px; background:var(--bg-input); color:var(--text); font:inherit; font-size:13px; cursor:pointer; }
 #startSpecialList { display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
-#startSpecialList p, #startSpecialStatus { font-size:12px; color:var(--text-dim); line-height:1.6; }
+#startSpecialList p { font-size:12px; color:var(--text-dim); line-height:1.6; }
 .start-special-item { display:flex; gap:10px; align-items:center; padding:8px 12px; border-left:3px solid var(--accent); border-radius:8px; background:var(--bg-input); font-size:13px; max-width:100%; }
 .start-special-item span { overflow-wrap:anywhere; }
 .start-special-item time { opacity:.7; white-space:nowrap; font-size:12px; }
@@ -382,9 +381,8 @@ body.start-modal-open { overflow:hidden; }
   </div>
 
   <section class="start-special-panel" aria-labelledby="startSpecialTitle">
-    <div class="start-special-heading"><h2 id="startSpecialTitle">Особые даты</h2><button id="startSpecialImport">Импорт из планёра · JSON</button></div>
-    <input type="file" id="startSpecialFile" accept=".json,application/json" hidden>
-    <div id="startSpecialList"></div><p id="startSpecialStatus" role="status"></p>
+    <div class="start-special-heading"><h2 id="startSpecialTitle">Особые даты</h2></div>
+    <div id="startSpecialList"></div>
   </section>
   <div class="grid" id="grid"></div>
 
@@ -1075,28 +1073,27 @@ function resetData() {
 }
 
 function startSpecialDates() {
-  try { const value=JSON.parse(localStorage.getItem('startpage_special_dates_v1')||'[]');return Array.isArray(value)?value:[]; } catch(_){return [];}
+  try { const shared=localStorage.getItem('planner_special_dates_v1');const value=JSON.parse(shared===null?localStorage.getItem('startpage_special_dates_v1')||'[]':shared);return Array.isArray(value)?value.filter(entry=>entry&&typeof entry.date==='string'&&typeof entry.name==='string'):[]; } catch(_){return [];}
 }
 function startSpecialDateKey(day) {return `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;}
 function renderStartSpecialDates() {
   const list=document.getElementById('startSpecialList'),today=new Date(),todayKey=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
   const entries=startSpecialDates().filter(entry=>entry.date>=todayKey).sort((a,b)=>a.date.localeCompare(b.date));
-  list.innerHTML=entries.length?entries.slice(0,8).map(entry=>`<div class="start-special-item"><time>${escapeHtml(entry.date)}</time><span>${escapeHtml(entry.name)}</span></div>`).join(''):'<p>Нет предстоящих особых дат. Импортируйте JSON из настроек планёра.</p>';
+  list.innerHTML=entries.length?entries.slice(0,8).map(entry=>`<div class="start-special-item"><time>${escapeHtml(entry.date)}</time><span>${escapeHtml(entry.name)}</span></div>`).join(''):'<p>Нет предстоящих особых дат. Добавьте их в настройках планёра.</p>';
+  renderCalendar();
 }
 function initStartSpecialDates() {
-  document.getElementById('startSpecialImport').onclick=()=>document.getElementById('startSpecialFile').click();
-  document.getElementById('startSpecialFile').onchange=async event=>{
-    const file=event.target.files[0];if(!file)return;
-    const status=document.getElementById('startSpecialStatus');
-    try {
-      if(file.size>1024*1024)throw new Error('Файл слишком большой.');
-      const value=JSON.parse(await file.text());
-      if(!Array.isArray(value)||value.some(entry=>!entry||typeof entry.name!=='string'||typeof entry.date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(entry.date)||Number.isNaN(new Date(entry.date+'T12:00:00').getTime())||!entry.name.trim()))throw new Error('Нужен JSON особых дат из планёра.');
-      const entries=value.map(entry=>({date:entry.date,name:entry.name,color:/^#[0-9a-f]{6}$/i.test(entry.color||'')?entry.color:'#a78bfa'}));
-      localStorage.setItem('startpage_special_dates_v1',JSON.stringify(entries));renderStartSpecialDates();renderCalendar();status.textContent=`Импортировано дат: ${entries.length}.`;
-    }catch(error){status.textContent='Импорт не выполнен: '+error.message;}
-    finally{event.target.value='';}
-  };
+  // Migrate the separate legacy import only if the planner has no canonical dates.
+  // An existing empty planner list is authoritative and must never resurrect deleted dates.
+  try {
+    if(localStorage.getItem('planner_special_dates_v1')===null) {
+      const legacy=startSpecialDates();
+      if(legacy.length)localStorage.setItem('planner_special_dates_v1',JSON.stringify(legacy.map(entry=>({...entry,id:entry.id||uid()}))));
+    }
+  } catch(_) {} // A read-only browser still displays its existing dates.
+  window.addEventListener('storage',event=>{if(event.key==='planner_special_dates_v1'||event.key===null){renderStartSpecialDates();window.PlannerSync?.scheduleNative(true);}});
+  window.addEventListener('pageshow',renderStartSpecialDates);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)renderStartSpecialDates();});
   renderStartSpecialDates();
 }
 
