@@ -935,7 +935,7 @@ textarea.form-input { resize: vertical; min-height: 60px; }
 
 .clock-toolbar, .clock-tools, .clock-template-tools { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:18px; }
 .clock-toolbar label, .clock-tools label { display:flex; align-items:center; gap:8px; color:var(--text-dim); font-size:13px; }
-.clock-toolbar input, .clock-toolbar select, .clock-tools input, .clock-template-tools input { background:var(--bg-item); color:var(--text); border:1px solid var(--border); border-radius:var(--r-sm); padding:9px; font:inherit; min-width:0; }
+.clock-toolbar input, .clock-toolbar select, .clock-tools select, .clock-tools input, .clock-template-tools input { background:var(--bg-item); color:var(--text); border:1px solid var(--border); border-radius:var(--r-sm); padding:9px; font:inherit; min-width:0; }
 .clock-description, .clock-source { color:var(--text-dim); font-size:13px; line-height:1.6; margin-bottom:16px; }
 .clock-dials { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; }
 .clock-panel { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--r-xl); padding:20px; min-width:0; }
@@ -962,6 +962,13 @@ textarea.form-input { resize: vertical; min-height: 60px; }
  .clock-toolbar label { flex-wrap:wrap; }
 }
 
+#calDayTemplate { background:var(--bg-item);color:var(--text);border:1px solid var(--border);border-radius:var(--r-sm);padding:9px;font:inherit;max-width:100%; }
+#page-calendar select option,#page-clock select option { background:var(--bg-item);color:var(--text); }
+.clock-paint-layout { display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,300px);gap:20px; }
+.clock-template-edit { border-left:1px solid var(--border);padding-left:20px;min-width:0; }
+.clock-template-edit label { display:block;color:var(--text-dim);font-size:13px;margin-bottom:8px; }
+.clock-template-edit select,.clock-template-edit input { width:100%;min-width:0;background:var(--bg-item);color:var(--text);border:1px solid var(--border);padding:10px;border-radius:var(--r-sm);font:inherit;margin-bottom:12px; }
+@media(max-width:899px) { .clock-paint-layout { grid-template-columns:minmax(0,1fr); } .clock-template-edit { border-left:0;border-top:1px solid var(--border);padding:16px 0 0; } }
 .clock-paint-box { padding:20px; margin-bottom:18px; border:1px solid var(--border); border-radius:var(--r-xl); background:var(--bg-card); }
 .clock-paint-box h2 { font-size:16px; margin-bottom:16px; }
 .clock-paint-box > .clock-tools:last-of-type { margin-bottom:0; }
@@ -1194,6 +1201,7 @@ html[data-theme="space"] .settings-stars { display:block; }
       <p class="clock-description">Выберите час, затем закрасьте минуты. Один блок — 5 минут. Можно вести по циферблату, чтобы выделить несколько блоков. Правый клик открывает подпись и очистку.</p>
       <div class="clock-paint-box" aria-labelledby="clockPaintTitle">
         <h2 id="clockPaintTitle">Редактор покраски</h2>
+        <div class="clock-paint-layout"><div>
       <div id="clockPaintPalette" class="clock-tools" role="group" aria-label="Существующие краски" style="flex-wrap:wrap;margin-bottom:12px"></div>
       <div class="clock-tools">
         <label>Цвет <input type="color" id="clockColor" value="#6b85ff"></label>
@@ -1202,6 +1210,13 @@ html[data-theme="space"] .settings-stars { display:block; }
       </div>
         <div class="clock-tools"><button class="btn-secondary" id="clockFillHour">Закрасить весь час</button><button class="btn-secondary" id="clockClearHour">Очистить час</button></div>
       <div class="clock-editor" id="clockBlockEditor" hidden><p id="clockBlockTitle" class="clock-description"></p><div class="clock-tools"><button class="btn-primary" id="clockUpdateBlock">Применить подпись и цвет</button><button class="btn-secondary" id="clockClearBlock">Очистить блок</button><button class="btn-secondary" id="clockCloseBlock">Закрыть</button></div></div>
+        </div><aside class="clock-template-edit" aria-label="Редактирование шаблона">
+          <label for="clockEditTemplate">Что редактируем</label><select id="clockEditTemplate"></select>
+          <label for="clockEditName">Название шаблона</label><input id="clockEditName" maxlength="60" placeholder="Название своего шаблона">
+          <button type="button" class="btn-secondary" id="clockCommitTemplate">Сохранить шаблон</button>
+          <p class="clock-description" id="clockEditStatus" role="status"></p>
+          <button type="button" class="btn-secondary" id="clockRestorePaints">Вернуть удалённые краски</button>
+        </aside></div>
       </div>
       <p class="clock-source" id="clockSource" role="status"></p>
       <div class="clock-dials">
@@ -2723,7 +2738,7 @@ function initCalEvents() {
   });
 }
 
-const ClockUI = { date: todayKey(), hour: new Date().getHours(), erase: false, block: 0, dragging: false, touched: new Set() };
+const ClockUI = { editingTemplate:null, draft:null, dirty:false, date: todayKey(), hour: new Date().getHours(), erase: false, block: 0, dragging: false, touched: new Set() };
 function emptyClockSlots() { return Array(288).fill(null); }
 function defaultClockTemplates() {
   const build = ranges => {
@@ -2753,8 +2768,8 @@ function clockSchedule(date) {
   const slots = data.overrides[date] || data.weekdayTemplates[new Date(date+'T12:00:00').getDay()]?.slots || clockTemplates().find(t => t.id === clockDefaultTemplate(date)).slots;
   return Array.from({length:288}, (_, i) => slots[i] ? { ...slots[i] } : null);
 }
-function clockDayRanges(date,includeEmpty=false) {
-  const slots=clockSchedule(date),ranges=[];
+function clockDayRanges(date,includeEmpty=false,slots=clockSchedule(date)) {
+  const ranges=[];
   for(let start=0;start<288;) {
     const slot=slots[start];let end=start+1;
     while(end<288 && !!slots[end]===!!slot && slots[end]?.label===slot?.label && slots[end]?.color===slot?.color)end++;
@@ -2764,7 +2779,17 @@ function clockDayRanges(date,includeEmpty=false) {
   return ranges;
 }
 function clockRangeTime(block) { return displayTime(block===288 && plannerSettings().timeFormat==='12' ? '00:00' : clockTime(block)); }
+function clockEditorSlots() { return ClockUI.editingTemplate?ClockUI.draft.map(slot=>slot?{...slot}:null):clockSchedule(ClockUI.date); }
+function renderClockTemplateEditor() {
+ const select=document.getElementById('clockEditTemplate'),value=ClockUI.editingTemplate||'';
+ select.innerHTML='<option value="">Расписание выбранной даты</option>'+clockTemplates().map(t=>`<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`).join('');select.value=value;
+ for(const id of ['clockDate','clockApplyTemplate','clockResetDate','clockSaveTemplate'])document.getElementById(id).disabled=!!value;
+ document.getElementById('clockCommitTemplate').disabled=!value;
+ document.getElementById('clockEditName').disabled=!value;
+}
 function saveClockSlots(slots, source = null) {
+  if(ClockUI.editingTemplate){ClockUI.draft=slots.map(slot=>slot?{...slot}:null);ClockUI.dirty=true;return;}
+
   const data = clockData();
   data.overrides[ClockUI.date] = slots;
   data.sources[ClockUI.date] = source;
@@ -2839,22 +2864,24 @@ function clockExistingPaints() {
   const label=String(slot.label||'').trim(),color=slot.color.toLowerCase(),key=JSON.stringify([label,color]);
   if(!paints.has(key))paints.set(key,{label,color});
  }
- return [...paints.values()];
+ const hidden=Store.get('planner_hidden_paints_v1',[]);return [...paints.values()].filter(paint=>!hidden.includes(JSON.stringify([paint.label,paint.color])));
 }
 function renderClockPaintPalette() {
  const palette=document.getElementById('clockPaintPalette');if(!palette)return;
  const label=document.getElementById('clockLabel').value.trim(),color=document.getElementById('clockColor').value.toLowerCase();
- palette.innerHTML=clockExistingPaints().map(paint=>`<button type="button" class="btn-secondary" data-paint-color="${paint.color}" data-paint-label="${escapeHtml(paint.label)}" aria-pressed="${paint.color===color&&paint.label===label}" style="display:inline-flex;align-items:center;gap:8px;${paint.color===color&&paint.label===label?'border-color:var(--accent);':''}"><span aria-hidden="true" style="width:14px;height:14px;border-radius:50%;background:${paint.color};border:1px solid var(--border);flex-shrink:0"></span>${escapeHtml(paint.label||'Без подписи')}</button>`).join('');
+ palette.innerHTML=clockExistingPaints().map(paint=>`<span style="display:inline-flex;align-items:center;gap:2px"><button type="button" class="btn-secondary" data-paint-color="${paint.color}" data-paint-label="${escapeHtml(paint.label)}" aria-pressed="${paint.color===color&&paint.label===label}" style="display:inline-flex;align-items:center;gap:8px;${paint.color===color&&paint.label===label?'border-color:var(--accent);':''}"><span aria-hidden="true" style="width:14px;height:14px;border-radius:50%;background:${paint.color};border:1px solid var(--border);flex-shrink:0"></span>${escapeHtml(paint.label||'Без подписи')}</button><button type="button" class="btn-secondary" data-delete-paint="${escapeHtml(JSON.stringify([paint.label,paint.color]))}" aria-label="Удалить краску ${escapeHtml(paint.label||'Без подписи')}" title="Удалить из палитры" style="padding:8px">×</button></span>`).join('');
 }
 function renderClock() {
   renderClockPaintPalette();
+  renderClockTemplateEditor();
   const hours = document.getElementById('clockHours');
   if (!hours) return;
-  const slots=clockSchedule(ClockUI.date), threshold=clockData().threshold;
+  const slots=clockEditorSlots(), threshold=clockData().threshold;
   document.getElementById('clockMinuteTitle').textContent = String(ClockUI.hour).padStart(2,'0') + ':00 — минуты';
   const count=slots.filter(Boolean).length*5;
   const personal=Object.prototype.hasOwnProperty.call(clockData().overrides, ClockUI.date);
   document.getElementById('clockSource').textContent=(personal ? clockDayName(ClockUI.date) + ' на эту дату. ' : 'По шаблону «' + clockDayName(ClockUI.date) + '». ') + 'Запланировано: ' + Math.floor(count/60) + ' ч ' + count%60 + ' мин. Изменения сохраняются автоматически.';
+  if(ClockUI.editingTemplate)document.getElementById('clockSource').textContent='Редактирование шаблона. Изменения применятся после сохранения.';
   let h='';
   for(let hour=0;hour<24;hour++) {
     const hourSlots=slots.slice(hour*12,hour*12+12), active=hourSlots.filter(Boolean).length*5>=threshold;
@@ -2862,7 +2889,7 @@ function renderClock() {
     if(active) hourSlots.forEach((slot,i)=>{if(slot) h+=`<path pointer-events="none" fill="${clockColor(slot)}" d="${clockWedge(hour*15+i*1.25+.1,hour*15+(i+1)*1.25-.1,119,164)}"/>`;});
     h+=clockText(hour*15+7.5,189,hour);
   }
-  h+=clockTaskMarkers(ClockUI.date);
+  if(!ClockUI.editingTemplate)h+=clockTaskMarkers(ClockUI.date);
   h+=`<text x="200" y="193" class="clock-center-main">${String(ClockUI.hour).padStart(2,'0')}:00</text><text x="200" y="225">выберите час</text>`;
   hours.innerHTML=h;
   let m='';
@@ -2874,7 +2901,7 @@ function renderClock() {
   m+=clockTaskMarkers(ClockUI.date, ClockUI.hour);
   m+=`<text x="200" y="193" class="clock-center-main">${slots.slice(ClockUI.hour*12,ClockUI.hour*12+12).filter(Boolean).length*5} мин</text><text x="200" y="225">блоки по 5 минут</text>`;
   document.getElementById('clockMinutes').innerHTML=m;
-  const summary=clockDayRanges(ClockUI.date).map(({start,end,slot})=>`<button type="button" data-clock-range="${start}" style="border-left:4px solid ${clockColor(slot)}"><time>${clockRangeTime(start)} — ${clockRangeTime(end)}</time><span>${escapeHtml(slot.label||'Без подписи')}</span></button>`).join('');
+  const summary=clockDayRanges(ClockUI.date,false,clockEditorSlots()).map(({start,end,slot})=>`<button type="button" data-clock-range="${start}" style="border-left:4px solid ${clockColor(slot)}"><time>${clockRangeTime(start)} — ${clockRangeTime(end)}</time><span>${escapeHtml(slot.label||'Без подписи')}</span></button>`).join('');
   document.getElementById('clockSummary').innerHTML=summary||'<p class="clock-description">День свободен. Выберите час и добавьте первый блок.</p>';
 }
 function refreshClockTemplates(selected) {
@@ -2885,14 +2912,14 @@ function refreshClockTemplates(selected) {
 function paintClockBlock(block) {
   if(ClockUI.touched.has(block)) return;
   ClockUI.touched.add(block);
-  const slots=clockSchedule(ClockUI.date);
+  const slots=clockEditorSlots();
   slots[block]=ClockUI.erase?null:{color:document.getElementById('clockColor').value,label:document.getElementById('clockLabel').value.trim()};
   saveClockSlots(slots);
   document.querySelectorAll(`#clockMinutes [data-block="${block}"]`).forEach(path=>path.setAttribute('fill',ClockUI.erase?'var(--bg-item)':clockColor(slots[block])));
 }
 function openClockBlock(block) {
   ClockUI.block=block;
-  const slot=clockSchedule(ClockUI.date)[block];
+  const slot=clockEditorSlots()[block];
   if(slot) {
     document.getElementById('clockColor').value=clockColor(slot);
     document.getElementById('clockLabel').value=slot.label||'';
@@ -2901,7 +2928,24 @@ function openClockBlock(block) {
   document.getElementById('clockBlockTitle').textContent=clockTime(block)+' — '+clockTime(block+1)+': задайте подпись и цвет в панели сверху или очистите блок.';
 }
 function initClock() {
+ document.getElementById('clockEditTemplate').onchange=event=>{
+  if(ClockUI.dirty&&!confirm('Отменить несохранённые изменения шаблона?')){event.target.value=ClockUI.editingTemplate;return;}
+  const template=clockTemplates().find(t=>t.id===event.target.value);
+  ClockUI.editingTemplate=template?.id||null;ClockUI.draft=template?template.slots.map(s=>s?{...s}:null):null;ClockUI.dirty=false;
+  document.getElementById('clockEditName').value=template?(template.builtin?template.name+' — свой':template.name):'';
+  document.getElementById('clockEditStatus').textContent=template?.builtin?'Стандартный шаблон будет сохранён как свой.':'';renderClock();
+ };
+ document.getElementById('clockEditName').oninput=()=>{if(ClockUI.editingTemplate)ClockUI.dirty=true;};
+ document.getElementById('clockCommitTemplate').onclick=()=>{
+  const template=clockTemplates().find(t=>t.id===ClockUI.editingTemplate),name=document.getElementById('clockEditName').value.trim();if(!template||!name){document.getElementById('clockEditName').focus();return;}
+  const data=clockData(),id=template.builtin?uid():template.id,updated={id,name,slots:clockEditorSlots()};
+  const index=data.custom.findIndex(t=>t.id===id);if(index<0)data.custom.push(updated);else data.custom[index]=updated;
+  Store.set(STORAGE_KEYS.clock,data);ClockUI.editingTemplate=id;ClockUI.dirty=false;refreshClockTemplates(id);renderClock();renderAgenda();document.getElementById('clockEditStatus').textContent='Шаблон сохранён. Уже применённые расписания дат не меняются.';
+ };
+ document.getElementById('clockRestorePaints').onclick=()=>{Store.set('planner_hidden_paints_v1',[]);renderClockPaintPalette();};
  document.getElementById('clockPaintPalette').addEventListener('click',event=>{
+  const remove=event.target.closest('[data-delete-paint]');if(remove){const hidden=Store.get('planner_hidden_paints_v1',[]);Store.set('planner_hidden_paints_v1',[...new Set([...hidden,remove.dataset.deletePaint])]);renderClockPaintPalette();return;}
+
   const button=event.target.closest('[data-paint-color]');if(!button)return;
   document.getElementById('clockColor').value=button.dataset.paintColor;
   document.getElementById('clockLabel').value=button.dataset.paintLabel;
@@ -2936,18 +2980,18 @@ function initClock() {
   document.getElementById('clockDate').addEventListener('change',e=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(e.target.value))return;ClockUI.date=e.target.value;document.getElementById('clockBlockEditor').hidden=true;refreshClockTemplates();renderClock();});
   document.getElementById('clockBack').onclick=()=>document.getElementById('page-clock').classList.remove('clock-mobile-minutes');
   document.getElementById('clockErase').onclick=e=>{ClockUI.erase=!ClockUI.erase;e.target.textContent='Ластик: '+(ClockUI.erase?'вкл.':'выкл.');e.target.setAttribute('aria-pressed',String(ClockUI.erase));};
-  document.getElementById('clockApplyTemplate').onclick=()=>{const template=clockTemplates().find(t=>t.id===document.getElementById('clockTemplate').value);if(template){saveClockSlots(template.slots, template.name);refresh();}};
-  document.getElementById('clockResetDate').onclick=()=>{const data=clockData();delete data.overrides[ClockUI.date];delete data.sources[ClockUI.date];Store.set(STORAGE_KEYS.clock,data);refreshClockTemplates();refresh();};
-  const fillHour=clear=>{const slots=clockSchedule(ClockUI.date);for(let i=ClockUI.hour*12;i<(ClockUI.hour+1)*12;i++)slots[i]=clear?null:{color:document.getElementById('clockColor').value,label:document.getElementById('clockLabel').value.trim()};saveClockSlots(slots);refresh();};
+  document.getElementById('clockApplyTemplate').onclick=()=>{if(ClockUI.editingTemplate){document.getElementById('clockEditStatus').textContent='Выберите «Расписание выбранной даты», чтобы применить шаблон к дате.';return;}const template=clockTemplates().find(t=>t.id===document.getElementById('clockTemplate').value);if(template){saveClockSlots(template.slots, template.name);refresh();}};
+  document.getElementById('clockResetDate').onclick=()=>{if(ClockUI.editingTemplate)return;const data=clockData();delete data.overrides[ClockUI.date];delete data.sources[ClockUI.date];Store.set(STORAGE_KEYS.clock,data);refreshClockTemplates();refresh();};
+  const fillHour=clear=>{const slots=clockEditorSlots();for(let i=ClockUI.hour*12;i<(ClockUI.hour+1)*12;i++)slots[i]=clear?null:{color:document.getElementById('clockColor').value,label:document.getElementById('clockLabel').value.trim()};saveClockSlots(slots);refresh();};
   document.getElementById('clockFillHour').onclick=()=>fillHour(false);
   document.getElementById('clockClearHour').onclick=()=>fillHour(true);
-  const editBlock=clear=>{const slots=clockSchedule(ClockUI.date);slots[ClockUI.block]=clear?null:{color:document.getElementById('clockColor').value,label:document.getElementById('clockLabel').value.trim()};saveClockSlots(slots);document.getElementById('clockBlockEditor').hidden=true;refresh();};
+  const editBlock=clear=>{const slots=clockEditorSlots();slots[ClockUI.block]=clear?null:{color:document.getElementById('clockColor').value,label:document.getElementById('clockLabel').value.trim()};saveClockSlots(slots);document.getElementById('clockBlockEditor').hidden=true;refresh();};
   document.getElementById('clockUpdateBlock').onclick=()=>editBlock(false);
   document.getElementById('clockClearBlock').onclick=()=>editBlock(true);
   document.getElementById('clockCloseBlock').onclick=()=>document.getElementById('clockBlockEditor').hidden=true;
   document.getElementById('clockSummary').onclick=e=>{const row=e.target.closest('[data-clock-range]');if(row){const block=Number(row.dataset.clockRange);selectHour(Math.floor(block/12));openClockBlock(block);}};
-  document.getElementById('clockSaveTemplate').onclick=()=>{const input=document.getElementById('clockTemplateName'),name=input.value.trim();if(!name){input.focus();return;}const data=clockData(),id=uid();data.custom.push({id,name,slots:clockSchedule(ClockUI.date)});Store.set(STORAGE_KEYS.clock,data);refreshClockTemplates(id);input.value='';document.getElementById('clockSource').textContent='Шаблон «'+name+'» сохранён.';};
-  document.getElementById('clockDeleteTemplate').onclick=()=>{const id=document.getElementById('clockTemplate').value;if(['weekdays','weekends','empty'].includes(id)){document.getElementById('clockSource').textContent='Стандартные шаблоны сохраняются. Для своего варианта создайте новый шаблон.';return;}const data=clockData();data.custom=data.custom.filter(t=>t.id!==id);Store.set(STORAGE_KEYS.clock,data);refreshClockTemplates();renderClock();};
+  document.getElementById('clockSaveTemplate').onclick=()=>{const input=document.getElementById('clockTemplateName'),name=input.value.trim();if(!name){input.focus();return;}const data=clockData(),id=uid();data.custom.push({id,name,slots:clockEditorSlots()});Store.set(STORAGE_KEYS.clock,data);refreshClockTemplates(id);input.value='';document.getElementById('clockSource').textContent='Шаблон «'+name+'» сохранён.';};
+  document.getElementById('clockDeleteTemplate').onclick=()=>{const id=document.getElementById('clockTemplate').value;if(['weekdays','weekends','empty'].includes(id)){document.getElementById('clockSource').textContent='Стандартные шаблоны сохраняются. Для своего варианта создайте новый шаблон.';return;}const data=clockData();data.custom=data.custom.filter(t=>t.id!==id);Store.set(STORAGE_KEYS.clock,data);if(ClockUI.editingTemplate===id){ClockUI.editingTemplate=null;ClockUI.draft=null;ClockUI.dirty=false;}refreshClockTemplates();renderClock();};
   renderClock();
 }
 
