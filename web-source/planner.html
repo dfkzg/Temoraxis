@@ -1194,6 +1194,7 @@ html[data-theme="space"] .settings-stars { display:block; }
       <p class="clock-description">Выберите час, затем закрасьте минуты. Один блок — 5 минут. Можно вести по циферблату, чтобы выделить несколько блоков. Правый клик открывает подпись и очистку.</p>
       <div class="clock-paint-box" aria-labelledby="clockPaintTitle">
         <h2 id="clockPaintTitle">Редактор покраски</h2>
+      <div id="clockPaintPalette" class="clock-tools" role="group" aria-label="Существующие краски" style="flex-wrap:wrap;margin-bottom:12px"></div>
       <div class="clock-tools">
         <label>Цвет <input type="color" id="clockColor" value="#6b85ff"></label>
         <label>Подпись <input id="clockLabel" placeholder="Например, работа" maxlength="100"></label>
@@ -2830,7 +2831,23 @@ function clockDayPreview(date) {
     <span class="cal-clock-open">Открыть →</span></span>
   </button>`;
 }
+function clockExistingPaints() {
+ const data=clockData(),paints=new Map();
+ const schedules=[...clockTemplates().map(t=>t.slots),...Object.values(data.overrides),...Object.values(data.weekdayTemplates).map(t=>t.slots)];
+ for(const slots of schedules)for(const slot of slots){
+  if(!slot||!/^#[0-9a-f]{6}$/i.test(slot.color))continue;
+  const label=String(slot.label||'').trim(),color=slot.color.toLowerCase(),key=JSON.stringify([label,color]);
+  if(!paints.has(key))paints.set(key,{label,color});
+ }
+ return [...paints.values()];
+}
+function renderClockPaintPalette() {
+ const palette=document.getElementById('clockPaintPalette');if(!palette)return;
+ const label=document.getElementById('clockLabel').value.trim(),color=document.getElementById('clockColor').value.toLowerCase();
+ palette.innerHTML=clockExistingPaints().map(paint=>`<button type="button" class="btn-secondary" data-paint-color="${paint.color}" data-paint-label="${escapeHtml(paint.label)}" aria-pressed="${paint.color===color&&paint.label===label}" style="display:inline-flex;align-items:center;gap:8px;${paint.color===color&&paint.label===label?'border-color:var(--accent);':''}"><span aria-hidden="true" style="width:14px;height:14px;border-radius:50%;background:${paint.color};border:1px solid var(--border);flex-shrink:0"></span>${escapeHtml(paint.label||'Без подписи')}</button>`).join('');
+}
 function renderClock() {
+  renderClockPaintPalette();
   const hours = document.getElementById('clockHours');
   if (!hours) return;
   const slots=clockSchedule(ClockUI.date), threshold=clockData().threshold;
@@ -2884,6 +2901,16 @@ function openClockBlock(block) {
   document.getElementById('clockBlockTitle').textContent=clockTime(block)+' — '+clockTime(block+1)+': задайте подпись и цвет в панели сверху или очистите блок.';
 }
 function initClock() {
+ document.getElementById('clockPaintPalette').addEventListener('click',event=>{
+  const button=event.target.closest('[data-paint-color]');if(!button)return;
+  document.getElementById('clockColor').value=button.dataset.paintColor;
+  document.getElementById('clockLabel').value=button.dataset.paintLabel;
+  ClockUI.erase=false;document.getElementById('clockErase').textContent='Ластик: выкл.';document.getElementById('clockErase').setAttribute('aria-pressed','false');
+  renderClockPaintPalette();
+ });
+ document.getElementById('clockColor').addEventListener('change',renderClockPaintPalette);
+ document.getElementById('clockLabel').addEventListener('change',renderClockPaintPalette);
+
   const openClockTask = event => {
     const marker = event.target.closest('[data-clock-task]');
     if (!marker) return;
