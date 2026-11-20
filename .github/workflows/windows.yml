@@ -1,0 +1,56 @@
+name: Publish Windows release
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: windows-release
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Prepare original assets
+        run: python windows/prepare.py
+      - name: Restore dependencies and retain notices
+        run: |
+          dotnet restore windows/Temoraxis.csproj
+          python windows/notices.py
+      - name: Publish Windows 11 x64 executable
+        run: dotnet publish windows/Temoraxis.csproj -c Release -o dist/windows
+      - name: Check bundled licenses
+        shell: pwsh
+        run: |
+          $path = Get-ChildItem windows/obj -Filter project.assets.json -Recurse | Select-Object -First 1
+          if (-not $path) { throw 'NuGet restore metadata missing' }
+          Copy-Item "$env:USERPROFILE/.nuget/packages/microsoft.web.webview2/1.0.2903.40/LICENSE.txt" dist/windows/WebView2-LICENSE.txt
+      - name: Run executable smoke test
+        shell: pwsh
+        run: |
+          $app = Start-Process dist/windows/Temoraxis.exe -ArgumentList '--smoke-test' -PassThru
+          if (-not $app.WaitForExit(90000)) { Stop-Process -Id $app.Id; throw 'WebView smoke test timed out' }
+          if ($app.ExitCode -ne 0 -or -not (Test-Path dist/windows/smoke-ok.txt)) {
+            if (Test-Path dist/windows/smoke-error.txt) { Get-Content dist/windows/smoke-error.txt }
+            throw 'Windows smoke test failed'
+          }
+          Get-Content dist/windows/smoke-ok.txt
+      - name: Publish Windows package
+        shell: pwsh
+        run: |
+          $meta = Get-Content windows/release.json | ConvertFrom-Json
+          Copy-Item dist/windows/Temoraxis.exe dist/temoraxis-windows.exe
+          $sha = (Get-FileHash dist/temoraxis-windows.exe -Algorithm SHA256).Hash.ToLower()
+          "$sha  temoraxis-windows.exe" | Set-Content dist/WINDOWS-SHA256SUMS.txt
+          if (gh release view $meta.tag 2>$null) { throw 'Windows version already exists; increment windows/release.json first' }
+          gh release create $meta.tag --target $env:GITHUB_SHA --draft --title "Temoraxis Windows $($meta.version)" --notes-file windows/RELEASE-NOTES.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Release draft failed' }
+          gh release upload $meta.tag dist/temoraxis-windows.exe dist/WINDOWS-SHA256SUMS.txt dist/windows/WebView2-LICENSE.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Release upload failed' }
+          gh release edit $meta.tag --draft=false --latest=false
+          if ($LASTEXITCODE -ne 0) { throw 'Release publication failed' }

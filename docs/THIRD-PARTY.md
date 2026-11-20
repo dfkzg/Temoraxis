@@ -48,3 +48,7 @@ Supabase используется как внешний сервис Auth и Pos
 ## Резервное копирование — внешние инструменты
 
 В `tools/backup/` используются стандартная библиотека Python, HTTP API Google Drive, Яндекс Диска и OAuth 2.0; Google/Yandex SDK и чужие реализации OAuth в проект не копируются. Для шифрования workflow устанавливает **age** из пакета Ubuntu (BSD-3-Clause; https://github.com/FiloSottile/age/blob/main/LICENSE), для логического дампа использует `pg_dump`/`pg_restore` из `postgres:17-alpine` (PostgreSQL License и лицензии компонентов образа; https://www.postgresql.org/about/licence/). Бинарные инструменты не включаются в APK или архив исходников. В тестах используется age 1.2.1 из официального выпуска; Actions использует версию age из репозитория Ubuntu 24.04.
+
+## Версия для Windows 11
+
+Windows-оболочка проекта использует Microsoft .NET / Windows Forms (MIT и уведомления включённых компонентов) и Microsoft Edge WebView2 SDK 1.0.2903.40 (условия Microsoft, файл LICENSE.txt из NuGet-пакета). Лицензии восстановленных пакетов встраиваются в EXE и доступны через меню трея «Лицензии». WebView2 Runtime устанавливается отдельно на условиях Microsoft; его бинарные файлы в комплект проекта не включаются. EXE содержит локальный веб-интерфейс из тех же исходников, что Android и сайт.

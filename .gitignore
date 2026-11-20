@@ -29,3 +29,8 @@ node_modules/
 *backup-key*.txt
 *google-drive-secret*.json
 client_secret*.json
+
+/windows/bin/
+/windows/obj/
+/windows/app.ico
+/windows/DEPENDENCY-NOTICES.txt
