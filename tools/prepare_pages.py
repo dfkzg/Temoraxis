@@ -14,6 +14,11 @@ if os.environ.get('GH_TOKEN'):
     if release.get('draft') or release.get('prerelease'):raise ValueError('Expected a published stable release')
     public={key:release.get(key) for key in ['tag_name','published_at','body','draft','prerelease']}
     public['assets']=[{key:asset.get(key) for key in ['name','size','digest','browser_download_url']} for asset in release['assets']]
+    windows_meta=json.loads((ROOT/'windows'/'release.json').read_text())
+    windows_request=urllib.request.Request('https://api.github.com/repos/dfkzg/Temoraxis/releases/tags/'+windows_meta['tag'],headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'})
+    with urllib.request.urlopen(windows_request,timeout=30) as response:windows_release=json.load(response)
+    if windows_release.get('draft') or windows_release.get('prerelease'):raise ValueError('Windows release is not published')
+    windows_asset=next(a for a in windows_release['assets'] if a['name']==windows_meta['asset'])
     snapshot=json.dumps(public,ensure_ascii=False).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
     page=output/'index.html'
     page.write_text(page.read_text().replace('const PUBLISHED_RELEASE=null;','const PUBLISHED_RELEASE='+snapshot+';'))
@@ -36,11 +41,15 @@ if os.environ.get('GH_TOKEN'):
     import zipfile,hashlib
     digest=apk_asset.get('digest')
     if digest and digest!='sha256:'+hashlib.sha256(apk_bytes).hexdigest():raise ValueError('APK checksum mismatch')
-    with zipfile.ZipFile(downloads/'temoraxis-desktop-android-kit.zip','w',zipfile.ZIP_DEFLATED) as archive:
+    with urllib.request.urlopen(windows_asset['browser_download_url'],timeout=120) as response:windows_bytes=response.read()
+    if not windows_bytes.startswith(b'MZ'):raise ValueError('Invalid Windows executable')
+    if windows_asset.get('digest') and windows_asset['digest']!='sha256:'+hashlib.sha256(windows_bytes).hexdigest():raise ValueError('Windows checksum mismatch')
+    with zipfile.ZipFile(downloads/'temoraxis-desktop-android-kit.zip' ,'w',zipfile.ZIP_DEFLATED) as archive:
         for name in ['planner.html','Start_page.html']:
             archive.write(downloads/name,'Temoraxis/'+name)
         archive.writestr('Temoraxis/temoraxis-android.apk',apk_bytes)
         archive.write(ROOT/'docs'/'USER-README.txt','Temoraxis/README.txt')
+        archive.writestr('Temoraxis/temoraxis-windows.exe',windows_bytes)
 for path in app.glob('*.html'):
     source=path.read_text().replace('</head>','<meta name="robots" content="noindex"></head>',1)
     path.write_text(source)

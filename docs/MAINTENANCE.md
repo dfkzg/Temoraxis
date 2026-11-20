@@ -103,3 +103,11 @@ Robots.txt в подпапке проекта не управляет Googlebot:
 ## Бесплатное облако Supabase
 
 Основной вариант для тестирования синхронизации — [SUPABASE.md](SUPABASE.md). Он использует Supabase Auth/REST/PostgreSQL вместо размещения Python-процесса. Страница одноразовой настройки — https://dfkzg.github.io/Temoraxis/setup/ . Python-сервер и Docker остаются альтернативой «Свой сервер». Публичный ключ — часть приложения; административные ключи не требуются в клиенте.
+
+## Выпуск Windows 11
+
+`windows/` — WinForms/WebView2-оболочка. Запустите `python windows/prepare.py`, `dotnet restore windows/Temoraxis.csproj`, `python windows/notices.py`, затем `dotnet publish windows/Temoraxis.csproj -c Release -o dist/windows`. Нужен .NET SDK 10; Python на Windows запускайте с `PYTHONUTF8=1`. EXE содержит .NET, веб-интерфейс и лицензионные уведомления; WebView2 Runtime остаётся системным компонентом. Данные находятся в `%LOCALAPPDATA%\Temoraxis`, стабильный виртуальный HTTPS-origin общий для обеих HTML-страниц.
+
+Для следующего выпуска увеличьте Version в csproj и version/tag в windows/release.json; затем вручную запустите workflow `Publish Windows release`. Он проверяет настоящий запуск EXE, обе страницы и общий localStorage на Windows, после чего публикует отдельный релиз `windows-v…` с `latest=false`, сохраняя последним Android-релиз. Pages после Windows-релиза пересобирает полный комплект. Вручную APK не пересобирается.
+
+Подпись Authenticode и системные будильники Windows пока не реализованы. Закрытие окна оставляет приложение в трее, полный выход завершает процесс. Гарантии напоминаний после выхода, во время сна и после перезагрузки нет. Смоук-тест CI не заменяет ручную проверку на пользовательской Windows 11.

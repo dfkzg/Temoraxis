@@ -2,9 +2,9 @@ name: Download page
 on:
   push:
     branches: [main]
-    paths: ['docs/**', 'web-source/**', 'supabase/**', 'stage_web.py', 'tools/prepare_pages.py', 'tools/user_html.py', 'tools/backup/**', '.github/workflows/pages.yml']
+    paths: ['docs/**', 'web-source/**', 'supabase/**', 'stage_web.py', 'tools/prepare_pages.py', 'tools/user_html.py', 'windows/release.json', 'tools/backup/**', '.github/workflows/pages.yml']
   workflow_run:
-    workflows: [Publish Android release]
+    workflows: [Publish Android release, Publish Windows release]
     types: [completed]
   workflow_dispatch:
 permissions:
