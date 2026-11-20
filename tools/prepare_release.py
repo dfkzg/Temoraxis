@@ -28,7 +28,7 @@ for name in web_names:(dist/name).write_text(standalone_html(name))
 with zipfile.ZipFile(dist/'temoraxis-user-kit.zip','w',zipfile.ZIP_DEFLATED) as archive:
  for name in web_names:archive.write(dist/name,'Temoraxis/'+name)
  archive.write(apk,'Temoraxis/temoraxis-android.apk')
- archive.writestr('Temoraxis/README.txt',"Temoraxis "+version+"\n\nAndroid: установите temoraxis-android.apk поверх прежней версии.\nПК: распакуйте архив и откройте planner.html или Start_page.html в браузере.\nХранение данных локальных HTML зависит от браузера. Регулярно делайте экспорт JSON.\nДля общего хранилища страниц, облачной синхронизации и веб-уведомлений рекомендуем веб-версию: https://dfkzg.github.io/Temoraxis/app/planner.html\nСистемные фоновые будильники доступны в APK при выданных разрешениях.\nИсходники: https://github.com/dfkzg/Temoraxis\n")
+ archive.write(ROOT/'docs'/'USER-README.txt','Temoraxis/README.txt')
 names=['temoraxis-android.apk','temoraxis-user-kit.zip','latest.json','planner.html','Start_page.html']
 (dist/'SHA256SUMS.txt').write_text(''.join(hashlib.sha256((dist/name).read_bytes()).hexdigest()+'  '+name+'\n' for name in names))
 print('Public release prepared:',version)

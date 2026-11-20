@@ -1009,6 +1009,9 @@ textarea.form-input { resize: vertical; min-height: 60px; }
 .theme-welcome { padding:18px; margin-bottom:20px; border:1px solid var(--border); border-radius:var(--r-lg); background:var(--bg-card); }
 .theme-welcome h2 { margin-bottom:8px; font-size:18px; }
 .theme-welcome p { color:var(--text-dim); font-size:13px; }
+.user-guide { line-height:1.65;overflow-wrap:anywhere; }
+.user-guide h2,.user-guide h3 { margin:20px 0 10px; }
+.user-guide p { margin:10px 0; }
 .settings-tabs { display:none; }
 .settings-panel { display:contents; }
 @media(max-width:899px) {
@@ -1320,6 +1323,7 @@ html[data-theme="space"] .settings-stars { display:block; }
         </section>
         <section class="settings-card settings-wide" data-settings-group="data"><h2>Данные</h2>
           <div class="settings-actions"><button class="btn-secondary" id="settingsExport">Экспорт всех данных · JSON</button><button class="btn-secondary" id="settingsImport">Импорт · JSON</button><button class="btn-secondary" id="settingsExportDates">Экспорт особых дат</button><button class="btn-danger" id="settingsReset">Сбросить данные планёра</button></div>
+          <details id="settingsUserGuide"><summary style="cursor:pointer;padding:12px 0;color:var(--accent)">Инструкция по Temoraxis</summary><!--USER_GUIDE--></details>
           <input type="file" id="settingsImportFile" accept=".json,application/json" hidden>
           <p class="settings-help">Импорт заменяет данные планёра после подтверждения. Аудиофайлы в JSON не включаются — папку sounds можно выбрать снова. Данные экспресс-панели сохраняются.</p>
         </section>

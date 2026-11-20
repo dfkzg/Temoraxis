@@ -9,6 +9,8 @@ for name in ['planner.html','Start_page.html']:
  theme_meta='' if '<meta name="theme-color"' in s else '\n<meta name="theme-color" content="#0a0a12">'
  s=s.replace('<meta charset="UTF-8">','<meta charset="UTF-8">\n<link rel="manifest" href="manifest.webmanifest">\n<link rel="icon" href="icon.svg" type="image/svg+xml">\n<link rel="apple-touch-icon" href="icon-180.png">'+theme_meta,1)
  s=s.replace('Удалить все задачи, расписания, шаблоны, настройки и сохранённые звуки планёра? Это действие нельзя отменить.', 'Удалить все задачи, расписания, шаблоны, настройки и сохранённые звуки планёра? Если подключена синхронизация, удаление будет передано другим устройствам аккаунта. Это действие нельзя отменить.',1)
+ guide=(SOURCE/'guide.html').read_text().split('<!--GUIDE_START-->')[1].split('<!--GUIDE_END-->')[0]
+ s=s.replace('<!--USER_GUIDE-->',guide)
  s=s.replace('</body>','<script>\n'+common+'\n</script>\n</body>',1)
  if name=='planner.html':
   s=s.replace("e.target.checked?'Напоминания включены. Для системных уведомлений разрешите их в браузере.'","e.target.checked?(window.PlannerAndroid?'Напоминания включены. Разрешения Android доступны в настройках → Меню приложения.':'Напоминания включены. Для системных уведомлений разрешите их в браузере.')",1)

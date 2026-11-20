@@ -7,3 +7,4 @@ Android: установите temoraxis-android.apk поверх прежней 
 https://dfkzg.github.io/Temoraxis/app/planner.html
 Фоновые будильники доступны в APK при выданных разрешениях.
 Исходники: https://github.com/dfkzg/Temoraxis
+Инструкция: https://dfkzg.github.io/Temoraxis/guide.html

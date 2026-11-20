@@ -17,6 +17,7 @@ if os.environ.get('GH_TOKEN'):
     snapshot=json.dumps(public,ensure_ascii=False).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
     page=output/'index.html'
     page.write_text(page.read_text().replace('const PUBLISHED_RELEASE=null;','const PUBLISHED_RELEASE='+snapshot+';'))
+shutil.copy2(ROOT/'web-source'/'guide.html',output/'guide.html')
 for name in ['icon.svg','icon-512.png']:
     shutil.copy2(ROOT/'web-source'/name,output/name)
 # Build a browser app from the same sources as Android; never maintain another HTML copy.
