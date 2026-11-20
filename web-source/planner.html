@@ -321,6 +321,11 @@ input[type="time"]::-webkit-outer-spin-button {
   padding: 6px 14px; font-family: inherit; font-size: 13px; font-weight: 500;
   cursor: pointer; transition: all var(--t-fast); white-space: nowrap; flex-shrink: 0;
 }
+#page-tasks .pill[data-period]::after,#page-tasks .pill[data-status]::after { content:' ▾'; }
+@media(max-width:899px) { #page-tasks .pill[data-period]::after,#page-tasks .pill[data-status]::after { content:none; } }
+.task-filter-menu { position:fixed;z-index:2000;min-width:180px;padding:6px;background:var(--bg-card);border:1px solid var(--border-hi);border-radius:var(--r-md);box-shadow:0 12px 32px #0005; }
+.task-filter-menu button { display:block;width:100%;text-align:left;border:0;border-radius:var(--r-sm);padding:10px 12px;background:transparent;color:var(--text);font:inherit;cursor:pointer; }
+.task-filter-menu button:hover,.task-filter-menu button:focus-visible,.task-filter-menu button[aria-checked="true"] { background:var(--accent-soft);color:var(--accent);outline:none; }
 .pill-short { display: none; }
 .pill-full { display: inline; }
 .pill:hover { color: var(--text); border-color: var(--border-hi); }
@@ -1122,9 +1127,9 @@ html[data-theme="space"] .settings-stars { display:block; }
             <span class="pill-short" title="По важности">⚑</span>
           </button>
           <span class="pill-sep"></span>
-          <button class="pill" data-period="day">День ▾</button>
+          <button class="pill" data-period="day">День</button>
           <span class="pill-sep"></span>
-          <button class="pill" data-status="all">Актуальные ▾</button>
+          <button class="pill" data-status="all">Актуальные</button>
         </div>
         <div class="tasks-search-wrap">
           <input type="text" id="tasksSearch" class="tasks-search" placeholder="Поиск по задачам...">
@@ -2144,25 +2149,31 @@ function initTasksUI() {
   const STATUSES = ['all', 'done', 'missed'];
   const STATUS_LABELS = { all: 'Актуальные', done: 'Выполненные', missed: 'Пропущенные' };
 
-  document.querySelectorAll('#page-tasks .pill').forEach(pill => {
-    pill.addEventListener('click', () => {
-      if (pill.dataset.sort) {
-        TasksUI.sort = pill.dataset.sort;
-        document.querySelectorAll('#page-tasks .pill[data-sort]').forEach(p => p.classList.toggle('active', p === pill));
+  let filterMenu=null,filterTrigger=null;
+  const closeFilterMenu=(focus=false)=>{filterMenu?.remove();filterMenu=null;if(filterTrigger){filterTrigger.setAttribute('aria-expanded','false');if(focus)filterTrigger.focus();}filterTrigger=null;};
+  const chooseFilter=(pill,key,value)=>{TasksUI[key]=value;pill.dataset[key]=value;pill.textContent=(key==='period'?PERIOD_LABELS:STATUS_LABELS)[value];renderTasks();};
+  const openFilterMenu=(pill,key)=>{
+    if(filterTrigger===pill){closeFilterMenu();return;}closeFilterMenu();
+    filterTrigger=pill;pill.setAttribute('aria-expanded','true');
+    filterMenu=document.createElement('div');filterMenu.className='task-filter-menu';filterMenu.setAttribute('role','menu');filterMenu.setAttribute('aria-label',key==='period'?'Период задач':'Состояние задач');
+    const values=key==='period'?PERIODS:STATUSES,labels=key==='period'?PERIOD_LABELS:STATUS_LABELS;
+    for(const value of values){const option=document.createElement('button');option.type='button';option.textContent=labels[value];option.setAttribute('role','menuitemradio');option.setAttribute('aria-checked',String(TasksUI[key]===value));option.onclick=()=>{chooseFilter(pill,key,value);closeFilterMenu(true);};filterMenu.appendChild(option);}
+    document.body.appendChild(filterMenu);const rect=pill.getBoundingClientRect();filterMenu.style.left=Math.max(8,Math.min(rect.left,innerWidth-filterMenu.offsetWidth-8))+'px';filterMenu.style.top=(rect.bottom+6+filterMenu.offsetHeight>innerHeight?Math.max(8,rect.top-filterMenu.offsetHeight-6):rect.bottom+6)+'px';
+    filterMenu.querySelector('[aria-checked="true"]').focus({preventScroll:true});
+    filterMenu.onkeydown=event=>{const options=[...filterMenu.children],index=options.indexOf(document.activeElement);if(event.key==='Escape'){event.preventDefault();closeFilterMenu(true);}else if(['ArrowDown','ArrowUp','Home','End'].includes(event.key)){event.preventDefault();options[event.key==='Home'?0:event.key==='End'?options.length-1:(index+(event.key==='ArrowDown'?1:-1)+options.length)%options.length].focus();}else if(event.key==='Tab')closeFilterMenu();};
+  };
+  document.addEventListener('pointerdown',event=>{if(filterMenu&&!filterMenu.contains(event.target)&&event.target!==filterTrigger)closeFilterMenu();});
+  window.addEventListener('resize',()=>closeFilterMenu());
+  window.addEventListener('scroll',()=>closeFilterMenu(),true);
+  document.querySelectorAll('#page-tasks .pill').forEach(pill=>{
+    const key=pill.dataset.period?'period':pill.dataset.status?'status':null;
+    if(key){pill.setAttribute('aria-haspopup','menu');pill.setAttribute('aria-expanded','false');}
+    pill.addEventListener('click',()=>{
+      if(key){
+        if(matchMedia('(min-width:900px)').matches){openFilterMenu(pill,key);return;}
+        const values=key==='period'?PERIODS:STATUSES;chooseFilter(pill,key,values[(values.indexOf(TasksUI[key])+1)%values.length]);return;
       }
-      if (pill.dataset.period) {
-        const idx = (PERIODS.indexOf(TasksUI.period) + 1) % PERIODS.length;
-        TasksUI.period = PERIODS[idx];
-        pill.textContent = PERIOD_LABELS[TasksUI.period] + ' ▾';
-        pill.dataset.period = TasksUI.period;
-      }
-      if (pill.dataset.status) {
-        const idx = (STATUSES.indexOf(TasksUI.status) + 1) % STATUSES.length;
-        TasksUI.status = STATUSES[idx];
-        pill.textContent = STATUS_LABELS[TasksUI.status] + ' ▾';
-        pill.dataset.status = TasksUI.status;
-      }
-      renderTasks();
+      if(pill.dataset.sort){TasksUI.sort=pill.dataset.sort;document.querySelectorAll('#page-tasks .pill[data-sort]').forEach(p=>p.classList.toggle('active',p===pill));renderTasks();}
     });
   });
 
@@ -2656,8 +2667,8 @@ function navigateToTasks(taskId, dateStr = null) {
   } else if (dateStr) {
     TasksUI.dateFilter=dateStr;TasksUI.period='day';TasksUI.status='all';TasksUI.search='';
     document.getElementById('tasksSearch').value='';
-    document.querySelector('#page-tasks [data-period]').textContent='День ▾';
-    document.querySelector('#page-tasks [data-status]').textContent='Актуальные ▾';
+    document.querySelector('#page-tasks [data-period]').textContent='День';
+    document.querySelector('#page-tasks [data-status]').textContent='Актуальные';
     renderTasks();
   }
 
