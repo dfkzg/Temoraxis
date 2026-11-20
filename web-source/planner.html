@@ -1175,6 +1175,12 @@ html[data-theme="space"] .settings-stars { display:block; }
           <span class="cal-agenda-date" id="calAgendaDate">Сегодня</span>
           <button class="cal-nav-btn" id="calAgendaNext" title="Следующий день">›</button>
         </div>
+        <div class="clock-tools" style="padding:12px 0;flex-wrap:wrap">
+          <label>Шаблон дня <select id="calDayTemplate" aria-label="Шаблон выбранного дня"></select></label>
+          <button type="button" class="btn-secondary" id="calApplyDayTemplate">Применить к дате</button>
+          <button type="button" class="btn-secondary" id="calApplyWeekdayTemplate">Ко всем дням недели</button>
+          <span id="calTemplateStatus" role="status" class="clock-description"></span>
+        </div>
         <div class="cal-agenda-view-toggle" role="group" aria-label="Содержимое выбранного дня">
           <button type="button" data-agenda-view="important" class="active" aria-pressed="true">Задачи дня</button>
           <button type="button" data-agenda-view="schedule" aria-pressed="false">Расписание</button>
@@ -2541,6 +2547,7 @@ function renderAgenda() {
 
   const d = CalState.agendaDate;
   const dateStr = toDateKey(d);
+  renderCalendarTemplates(dateStr);
   const dow = (d.getDay() + 6) % 7;
   const isToday = dateStr === todayKey();
 
@@ -2628,7 +2635,33 @@ function navigateToTasks(taskId, dateStr = null) {
 
 }
 
+const CAL_WEEKDAY_TARGETS=['воскресеньям','понедельникам','вторникам','средам','четвергам','пятницам','субботам'];
+function renderCalendarTemplates(date) {
+ const select=document.getElementById('calDayTemplate');if(!select)return;
+ const previous=select.dataset.date===date?select.value:null;
+ const templates=clockTemplates(),name=clockDayName(date);
+ select.innerHTML=templates.map(t=>`<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`).join('');
+ select.value=previous||templates.find(t=>t.name===name)?.id||clockDefaultTemplate(date);
+ select.dataset.date=date;
+ document.getElementById('calApplyWeekdayTemplate').textContent='Ко всем '+CAL_WEEKDAY_TARGETS[new Date(date+'T12:00:00').getDay()];
+ document.getElementById('calTemplateStatus').textContent='Сейчас: '+name;
+}
+function applyCalendarTemplate(allWeekdays) {
+ const date=toDateKey(CalState.agendaDate),day=new Date(date+'T12:00:00').getDay();
+ const template=clockTemplates().find(t=>t.id===document.getElementById('calDayTemplate').value);if(!template)return;
+ if(allWeekdays&&!confirm('Применить шаблон «'+template.name+'» ко всем '+CAL_WEEKDAY_TARGETS[day]+'? Индивидуальные расписания этих дат будут заменены. Задачи сохранятся.'))return;
+ const data=clockData(),slots=template.slots.map(slot=>slot?{...slot}:null);
+ if(allWeekdays){
+  data.weekdayTemplates[day]={name:template.name,slots};
+  for(const key of Object.keys(data.overrides))if(new Date(key+'T12:00:00').getDay()===day){delete data.overrides[key];delete data.sources[key];}
+ }else{data.overrides[date]=slots;data.sources[date]=template.name;}
+ Store.set(STORAGE_KEYS.clock,data);renderCalendar();renderClock();
+ document.getElementById('calTemplateStatus').textContent='Шаблон «'+template.name+'» применён '+(allWeekdays?'ко всем '+CAL_WEEKDAY_TARGETS[day]:'к выбранной дате')+'.';
+}
 function initCalEvents() {
+ document.getElementById('calApplyDayTemplate').onclick=()=>applyCalendarTemplate(false);
+ document.getElementById('calApplyWeekdayTemplate').onclick=()=>applyCalendarTemplate(true);
+
   document.querySelectorAll('[data-agenda-view]').forEach(button=>button.addEventListener('click',()=>{
     CalState.agendaView=button.dataset.agendaView;
     Store.set('planner_calendar_agenda_view_v1',CalState.agendaView);
@@ -2707,7 +2740,7 @@ function defaultClockTemplates() {
 }
 function clockData() {
   const data = Store.get(STORAGE_KEYS.clock, {});
-  return { overrides: data.overrides || {}, sources: data.sources || {}, threshold: Math.max(5, Math.min(60, Number(data.threshold) || 15)), custom: Array.isArray(data.custom) ? data.custom : [] };
+  return { weekdayTemplates: data.weekdayTemplates || {}, overrides: data.overrides || {}, sources: data.sources || {}, threshold: Math.max(5, Math.min(60, Number(data.threshold) || 15)), custom: Array.isArray(data.custom) ? data.custom : [] };
 }
 function clockTemplates() { return [...defaultClockTemplates(), ...clockData().custom]; }
 function clockDefaultTemplate(date) {
@@ -2716,7 +2749,7 @@ function clockDefaultTemplate(date) {
 }
 function clockSchedule(date) {
   const data = clockData();
-  const slots = data.overrides[date] || clockTemplates().find(t => t.id === clockDefaultTemplate(date)).slots;
+  const slots = data.overrides[date] || data.weekdayTemplates[new Date(date+'T12:00:00').getDay()]?.slots || clockTemplates().find(t => t.id === clockDefaultTemplate(date)).slots;
   return Array.from({length:288}, (_, i) => slots[i] ? { ...slots[i] } : null);
 }
 function clockDayRanges(date,includeEmpty=false) {
@@ -2750,7 +2783,7 @@ function clockColor(slot) { return slot && /^#[0-9a-f]{6}$/i.test(slot.color) ? 
 function clockDayName(date) {
   const data = clockData();
   if (Object.prototype.hasOwnProperty.call(data.overrides, date)) return data.sources[date] || 'Своё расписание';
-  return clockTemplates().find(t => t.id === clockDefaultTemplate(date)).name;
+  return data.weekdayTemplates[new Date(date+'T12:00:00').getDay()]?.name || clockTemplates().find(t => t.id === clockDefaultTemplate(date)).name;
 }
 function clockDayTasks(date) {
   return getTasksForDate(date).filter(task => task.status !== 'done' && task.status !== 'missed')
