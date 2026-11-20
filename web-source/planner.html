@@ -964,6 +964,14 @@ textarea.form-input { resize: vertical; min-height: 60px; }
 
 #calDayTemplate { background:var(--bg-item);color:var(--text);border:1px solid var(--border);border-radius:var(--r-sm);padding:9px;font:inherit;max-width:100%; }
 #page-calendar select option,#page-clock select option { background:var(--bg-item);color:var(--text); }
+.clock-paint-chip { display:inline-flex;align-items:stretch; }
+.clock-paint-chip > [data-delete-paint] { display:none; }
+@media(max-width:899px) {
+ .clock-paint-chip { border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg-item);overflow:hidden; }
+ .clock-paint-chip:has([aria-pressed="true"]) { border-color:var(--accent); }
+ .clock-paint-chip > .btn-secondary { border:0!important;border-radius:0;background:transparent; }
+ .clock-paint-chip > [data-delete-paint] { display:block;border-left:1px solid var(--border)!important;padding:8px 10px!important; }
+}
 .clock-paint-layout { display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,300px);gap:20px; }
 .clock-template-edit { border-left:1px solid var(--border);padding-left:20px;min-width:0; }
 .clock-template-edit label { display:block;color:var(--text-dim);font-size:13px;margin-bottom:8px; }
@@ -1200,8 +1208,8 @@ html[data-theme="space"] .settings-stars { display:block; }
       <h1 class="page-title">Часы-планёр</h1>
       <p class="clock-description">Выберите час, затем закрасьте минуты. Один блок — 5 минут. Можно вести по циферблату, чтобы выделить несколько блоков. Правый клик открывает подпись и очистку.</p>
       <div class="clock-paint-box" aria-labelledby="clockPaintTitle">
-        <h2 id="clockPaintTitle">Редактор покраски</h2>
         <div class="clock-paint-layout"><div>
+        <h2 id="clockPaintTitle">Редактор покраски</h2>
       <div id="clockPaintPalette" class="clock-tools" role="group" aria-label="Существующие краски" style="flex-wrap:wrap;margin-bottom:12px"></div>
       <div class="clock-tools">
         <label>Цвет <input type="color" id="clockColor" value="#6b85ff"></label>
@@ -2869,7 +2877,7 @@ function clockExistingPaints() {
 function renderClockPaintPalette() {
  const palette=document.getElementById('clockPaintPalette');if(!palette)return;
  const label=document.getElementById('clockLabel').value.trim(),color=document.getElementById('clockColor').value.toLowerCase();
- palette.innerHTML=clockExistingPaints().map(paint=>`<span style="display:inline-flex;align-items:center;gap:2px"><button type="button" class="btn-secondary" data-paint-color="${paint.color}" data-paint-label="${escapeHtml(paint.label)}" aria-pressed="${paint.color===color&&paint.label===label}" style="display:inline-flex;align-items:center;gap:8px;${paint.color===color&&paint.label===label?'border-color:var(--accent);':''}"><span aria-hidden="true" style="width:14px;height:14px;border-radius:50%;background:${paint.color};border:1px solid var(--border);flex-shrink:0"></span>${escapeHtml(paint.label||'Без подписи')}</button><button type="button" class="btn-secondary" data-delete-paint="${escapeHtml(JSON.stringify([paint.label,paint.color]))}" aria-label="Удалить краску ${escapeHtml(paint.label||'Без подписи')}" title="Удалить из палитры" style="padding:8px">×</button></span>`).join('');
+ palette.innerHTML=clockExistingPaints().map(paint=>`<span class="clock-paint-chip"><button type="button" class="btn-secondary" data-paint-color="${paint.color}" data-paint-label="${escapeHtml(paint.label)}" aria-pressed="${paint.color===color&&paint.label===label}" style="display:inline-flex;align-items:center;gap:8px;${paint.color===color&&paint.label===label?'border-color:var(--accent);':''}"><span aria-hidden="true" style="width:14px;height:14px;border-radius:50%;background:${paint.color};border:1px solid var(--border);flex-shrink:0"></span>${escapeHtml(paint.label||'Без подписи')}</button><button type="button" class="btn-secondary" data-delete-paint="${escapeHtml(JSON.stringify([paint.label,paint.color]))}" aria-label="Удалить краску ${escapeHtml(paint.label||'Без подписи')}" title="Удалить из палитры" style="padding:8px">×</button></span>`).join('');
 }
 function renderClock() {
   renderClockPaintPalette();
@@ -2927,7 +2935,16 @@ function openClockBlock(block) {
   document.getElementById('clockBlockEditor').hidden=false;
   document.getElementById('clockBlockTitle').textContent=clockTime(block)+' — '+clockTime(block+1)+': задайте подпись и цвет в панели сверху или очистите блок.';
 }
+function removeClockPaint(key) {
+ const hidden=Store.get('planner_hidden_paints_v1',[]);
+ Store.set('planner_hidden_paints_v1',[...new Set([...hidden,key])]);renderClockPaintPalette();
+}
 function initClock() {
+ const palette=document.getElementById('clockPaintPalette');
+ const removePaint=event=>{const button=event.target.closest('[data-paint-color]');if(!button)return;event.preventDefault();const key=JSON.stringify([button.dataset.paintLabel,button.dataset.paintColor]);removeClockPaint(key);palette.querySelector('[data-paint-color]')?.focus({preventScroll:true});};
+ palette.addEventListener('contextmenu',removePaint);
+ palette.addEventListener('keydown',event=>{if(event.key==='Delete')removePaint(event);});
+
  document.getElementById('clockEditTemplate').onchange=event=>{
   if(ClockUI.dirty&&!confirm('Отменить несохранённые изменения шаблона?')){event.target.value=ClockUI.editingTemplate;return;}
   const template=clockTemplates().find(t=>t.id===event.target.value);
@@ -2944,7 +2961,7 @@ function initClock() {
  };
  document.getElementById('clockRestorePaints').onclick=()=>{Store.set('planner_hidden_paints_v1',[]);renderClockPaintPalette();};
  document.getElementById('clockPaintPalette').addEventListener('click',event=>{
-  const remove=event.target.closest('[data-delete-paint]');if(remove){const hidden=Store.get('planner_hidden_paints_v1',[]);Store.set('planner_hidden_paints_v1',[...new Set([...hidden,remove.dataset.deletePaint])]);renderClockPaintPalette();return;}
+  const remove=event.target.closest('[data-delete-paint]');if(remove){removeClockPaint(remove.dataset.deletePaint);return;}
 
   const button=event.target.closest('[data-paint-color]');if(!button)return;
   document.getElementById('clockColor').value=button.dataset.paintColor;
