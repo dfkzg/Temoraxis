@@ -1,6 +1,6 @@
 """Build the public download site without publishing maintenance documents or duplicate assets in Git."""
 from pathlib import Path
-import html,json,os,runpy,shutil,urllib.request
+import html,json,os,re,runpy,shutil,urllib.request
 ROOT=Path(__file__).resolve().parents[1]
 output=ROOT/'dist'/'pages'
 if output.exists():shutil.rmtree(output)
@@ -21,7 +21,9 @@ if os.environ.get('GH_TOKEN'):
     windows_asset=next(a for a in windows_release['assets'] if a['name']==windows_meta['asset'])
     snapshot=json.dumps(public,ensure_ascii=False).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
     page=output/'index.html'
-    page.write_text(page.read_text().replace('const PUBLISHED_RELEASE=null;','const PUBLISHED_RELEASE='+snapshot+';'))
+    page_source=page.read_text().replace('const PUBLISHED_RELEASE=null;','const PUBLISHED_RELEASE='+snapshot+';')
+    page_source=re.sub(r'(<a[^>]*id="windows"[^>]*href=")[^"]+(")',lambda match:match[1]+html.escape(windows_asset['browser_download_url'],quote=True)+match[2],page_source)
+    page.write_text(page_source)
 shutil.copy2(ROOT/'web-source'/'guide.html',output/'guide.html')
 for name in ['icon.svg','icon-512.png']:
     shutil.copy2(ROOT/'web-source'/name,output/name)
@@ -44,7 +46,7 @@ if os.environ.get('GH_TOKEN'):
     with urllib.request.urlopen(windows_asset['browser_download_url'],timeout=120) as response:windows_bytes=response.read()
     if not windows_bytes.startswith(b'MZ'):raise ValueError('Invalid Windows executable')
     if windows_asset.get('digest') and windows_asset['digest']!='sha256:'+hashlib.sha256(windows_bytes).hexdigest():raise ValueError('Windows checksum mismatch')
-    with zipfile.ZipFile(downloads/'temoraxis-desktop-android-kit.zip' ,'w',zipfile.ZIP_DEFLATED) as archive:
+    with zipfile.ZipFile(downloads/'temoraxis-full-kit.zip' ,'w',zipfile.ZIP_DEFLATED) as archive:
         for name in ['planner.html','Start_page.html']:
             archive.write(downloads/name,'Temoraxis/'+name)
         archive.writestr('Temoraxis/temoraxis-android.apk',apk_bytes)
