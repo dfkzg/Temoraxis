@@ -150,11 +150,19 @@
   .list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; transition: background .15s ease; }
   .list:hover::-webkit-scrollbar-thumb { background: var(--accent-soft); }
   .list::-webkit-scrollbar-thumb:hover { background: var(--accent); }
-  .list li { position: relative; cursor: grab; }
-  .list li:active { cursor: grabbing; }
-  .list li.dragging { opacity: 0.4; transform: scale(0.96); }
-  .card.drag-target { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft), 0 12px 40px var(--title-glow); transform: translateY(-2px); }
-  .card.drag-target .card-header::after { content: '⬇ Переместить сюда'; display: block; font-size: 11px; color: var(--accent); margin-top: 4px; font-weight: 500; }
+  .list li { position:relative; }
+  .list li[data-link-id] > a { padding-left:38px; padding-right:66px; }
+  .drag-handle { touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;flex-shrink:0;color:var(--text-dim);background:transparent;border:0;border-radius:6px;font:18px system-ui;width:28px;min-height:32px;display:inline-flex;align-items:center;justify-content:center; }
+  .drag-handle:hover,.drag-handle:focus-visible { color:var(--accent);background:var(--accent-soft);outline:2px solid var(--accent);outline-offset:1px; }
+  .link-drag-handle { position:absolute;left:4px;top:50%;transform:translateY(-50%);z-index:2; }
+  .dnd-source { opacity:.35; }
+  body.dnd-active { user-select:none;cursor:grabbing; }
+  body.dnd-active .card:hover,body.dnd-active .list a:hover { transform:none; }
+  .dnd-ghost { position:fixed;z-index:10000;pointer-events:none;padding:12px 16px;background:var(--bg-card);color:var(--text);border:1px solid var(--accent);border-radius:10px;box-shadow:0 10px 28px #0005;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.95; }
+  .dnd-line { position:fixed;z-index:9999;pointer-events:none;background:var(--accent);border-radius:3px;box-shadow:0 0 0 1px var(--bg-card); }
+  .dnd-feedback { max-width:1200px;width:100%;display:flex;align-items:center;gap:12px;font-size:13px;color:var(--text-dim);min-height:32px;margin:8px 0; }
+  .dnd-feedback button { color:var(--accent);background:var(--bg-item);border:1px solid var(--border);padding:6px 10px;border-radius:8px;cursor:pointer;font:inherit; }
+  @media(pointer:coarse) { .drag-handle { width:32px;min-height:40px; } .item-actions,.card-actions { opacity:1; } }
   .card { transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
   .card-header { cursor: default; position: relative; }
   .card-title { cursor: default; }
@@ -643,6 +651,7 @@ function escapeHtml(s) {
 function escapeAttr(s) { return escapeHtml(s); }
 
 function render() {
+  window.cancelStartDrag?.();
   const grid = document.getElementById('grid');
   grid.innerHTML = '';
 
@@ -652,6 +661,7 @@ function render() {
     card.dataset.groupId = group.id;
     card.innerHTML = `
       <div class="card-header">
+        <button type="button" class="drag-handle" data-drag-group="${escapeAttr(group.id)}" aria-label="Переместить группу ${escapeAttr(group.name)}" title="Перетащить группу; стрелки — переместить">⠿</button>
         <span class="dot"></span>
         <h2 class="card-title">${escapeHtml(group.name)}</h2>
         <div class="card-actions">
@@ -674,11 +684,12 @@ function render() {
 
     group.links.forEach(link => {
       const li = document.createElement('li');
-      li.setAttribute('draggable', String(innerWidth > 899 && !matchMedia('(pointer:coarse)').matches));
+      li.draggable=false;
       li.dataset.linkId = link.id;
       li.dataset.groupId = group.id;
       li.innerHTML = `
-        <a href="${escapeAttr(link.url)}"${openInNewTab ? ' target="_blank"' : ''}>
+        <button type="button" class="drag-handle link-drag-handle" data-drag-link="${escapeAttr(link.id)}" aria-label="Переместить ссылку ${escapeAttr(link.name)}" title="Перетащить; ↑↓ — порядок, Alt+←→ — другая группа">⠿</button>
+        <a draggable="false" href="${escapeAttr(link.url)}"${openInNewTab ? ' target="_blank"' : ''}>
           <span class="favicon">${initials(link.name)}</span>
           <span>${escapeHtml(link.name)}</span>
         </a>
@@ -697,116 +708,94 @@ function render() {
 }
 
 /* ============ DRAG & DROP ============ */
-let dragData = null; /* { linkId, sourceGroupId } */
-let dragTargetCard = null;
-let dragTargetLi = null;
-let dragInsertBefore = true;
-
 function initDragDrop() {
-  const grid = document.getElementById('grid');
-
-  /* dragstart — на li (делегирование через grid) */
-  grid.addEventListener('dragstart', e => {
-    const li = e.target.closest('li[draggable="true"]');
-    if (!li) return;
-    dragData = {
-      linkId: li.dataset.linkId,
-      sourceGroupId: li.dataset.groupId
-    };
-    li.classList.add('dragging');
-    e.dataTransfer.effectAllowed = 'move';
-    /* Для Firefox */
-    e.dataTransfer.setData('text/plain', '');
-  });
-
-  grid.addEventListener('dragend', e => {
-    const li = e.target.closest('li[draggable="true"]');
-    if (li) li.classList.remove('dragging');
-    if (dragTargetCard) {
-      dragTargetCard.classList.remove('drag-target');
-      dragTargetCard = null;
-    }
-    if (dragTargetLi) {
-      dragTargetLi.style.borderTop = '';
-      dragTargetLi = null;
-    }
-    dragData = null;
-  });
-
-  /* dragover — определяем карточку и позицию вставки */
-  grid.addEventListener('dragover', e => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-
-    const card = e.target.closest('.card');
-    if (!card) return;
-
-    /* Подсвечиваем карточку под курсором (межгрупповое перемещение) */
-    if (dragTargetCard && dragTargetCard !== card) {
-      dragTargetCard.classList.remove('drag-target');
-    }
-    if (card.dataset.groupId !== dragData?.sourceGroupId) {
-      card.classList.add('drag-target');
-      dragTargetCard = card;
-    }
-
-    /* Определяем li под курсором для сортировки внутри группы */
-    const targetLi = e.target.closest('li[draggable="true"]');
-    const sameGroup = targetLi && targetLi.dataset.groupId === dragData?.sourceGroupId;
-
-    if (sameGroup && targetLi !== dragTargetLi) {
-      if (dragTargetLi) dragTargetLi.style.borderTop = '';
-      const rect = targetLi.getBoundingClientRect();
-      const midY = rect.top + rect.height / 2;
-      dragInsertBefore = e.clientY < midY;
-      targetLi.style.borderTop = dragInsertBefore
-        ? '2px solid var(--accent)'
-        : '';
-      dragTargetLi = targetLi;
-    } else if (dragTargetLi && !sameGroup) {
-      dragTargetLi.style.borderTop = '';
-      dragTargetLi = null;
-    }
-  });
-
-  /* drop */
-  grid.addEventListener('drop', e => {
-    const card = e.target.closest('.card');
-    if (!card || !dragData) return;
-    e.preventDefault();
-
-    const targetGid = card.dataset.groupId;
-    if (!targetGid) return;
-
-    const srcGroup = data.groups.find(g => g.id === dragData.sourceGroupId);
-    const linkIdx = srcGroup.links.findIndex(l => l.id === dragData.linkId);
-    if (linkIdx === -1) return;
-    const [link] = srcGroup.links.splice(linkIdx, 1);
-
-    /* Если та же группа — сортировка внутри */
-    if (targetGid === dragData.sourceGroupId && dragTargetLi) {
-      const tgtGroup = srcGroup;
-      const targetLinkIdx = tgtGroup.links.findIndex(
-        l => l.id === dragTargetLi.dataset.linkId
-      );
-      const insertIdx = dragInsertBefore
-        ? targetLinkIdx
-        : targetLinkIdx + 1;
-      tgtGroup.links.splice(insertIdx, 0, link);
-    } else {
-      /* Иначе — перемещение в другую группу */
-      const tgtGroup = data.groups.find(g => g.id === targetGid);
-      if (tgtGroup) tgtGroup.links.push(link);
-    }
-
-    saveData();
-    render();
-  });
+ const grid=document.getElementById('grid');
+ const feedback=document.createElement('div');feedback.className='dnd-feedback';feedback.innerHTML='<span role="status" aria-live="polite">Порядок ссылок и групп можно менять за ручку ⠿.</span><button type="button" hidden>Отменить перенос</button>';grid.after(feedback);
+ const status=feedback.querySelector('span'),undo=feedback.querySelector('button');let pending=null,active=null,frame=0,snapshot=null,result=null;
+ const announce=text=>{status.textContent=text;};
+ function cancel(){cancelAnimationFrame(frame);frame=0;if(active){active.source.classList.remove('dnd-source');active.ghost.remove();active.line.remove();}active=null;pending=null;document.body.classList.remove('dnd-active');}
+ window.cancelStartDrag=cancel;
+ function commit(move){
+  const before=JSON.stringify(data.groups);
+  if(move.kind==='link'){
+   const src=data.groups.find(g=>g.id===move.sourceGroup),dst=data.groups.find(g=>g.id===move.targetGroup);if(!src||!dst)return false;
+   const index=src.links.findIndex(l=>l.id===move.id);if(index<0)return false;
+   if(move.beforeId===move.id)return false;
+   const [link]=src.links.splice(index,1);let at=move.beforeId?dst.links.findIndex(l=>l.id===move.beforeId):dst.links.length;if(at<0)at=dst.links.length;dst.links.splice(at,0,link);
+  }else{
+   const index=data.groups.findIndex(g=>g.id===move.id);if(index<0||move.beforeId===move.id)return false;
+   const [group]=data.groups.splice(index,1);let at=move.beforeId?data.groups.findIndex(g=>g.id===move.beforeId):data.groups.length;if(at<0)at=data.groups.length;data.groups.splice(at,0,group);
+  }
+  const after=JSON.stringify(data.groups);if(before===after)return false;
+  snapshot=before;result=after;try{saveData();}catch(error){data.groups=JSON.parse(before);snapshot=null;result=null;render();undo.hidden=true;announce('Не удалось сохранить перенос. Проверьте свободное место в хранилище.');return false;}render();undo.hidden=false;announce(move.kind==='link'?'Ссылка перемещена.':'Группа перемещена.');return true;
+ }
+ undo.onclick=()=>{if(!snapshot||JSON.stringify(data.groups)!==result){undo.hidden=true;announce('После переноса данные изменились. Отмена недоступна.');return;}data.groups=JSON.parse(snapshot);saveData();render();undo.hidden=true;snapshot=null;announce('Перенос отменён.');};
+ function updateTarget(){
+  if(!active)return;
+  const {x,y}=active;active.ghost.style.left=Math.max(8,Math.min(innerWidth-active.ghost.offsetWidth-8,x-active.offsetX))+'px';active.ghost.style.top=(y+16)+'px';
+  const card=document.elementFromPoint(x,y)?.closest('#grid .card');active.destination=null;active.line.hidden=true;
+  if(!card)return;
+  if(active.kind==='group'){
+   if(card===active.source)return;
+   const r=card.getBoundingClientRect(),sourceRect=active.source.getBoundingClientRect();const sameRow=Math.abs(r.top-sourceRect.top)<20;
+   const before=sameRow?x<r.left+r.width/2:y<r.top+r.height/2;
+   const groups=[...grid.querySelectorAll('.card')].filter(c=>c!==active.source),index=groups.indexOf(card);
+   active.destination={kind:'group',id:active.id,beforeId:(before?card:groups[index+1])?.dataset.groupId||null};
+   Object.assign(active.line.style,sameRow?{left:(before?r.left-5:r.right+5)+'px',top:r.top+'px',width:'3px',height:r.height+'px'}:{left:r.left+'px',top:(before?r.top-5:r.bottom+5)+'px',width:r.width+'px',height:'3px'});
+  }else{
+   const list=card.querySelector('.list'),rows=[...list.querySelectorAll('li[data-link-id]')].filter(row=>row!==active.source);
+   const next=rows.find(row=>{const r=row.getBoundingClientRect();return y<r.top+r.height/2;});
+   active.destination={kind:'link',id:active.id,sourceGroup:active.sourceGroup,targetGroup:card.dataset.groupId,beforeId:next?.dataset.linkId||null};
+   const lr=list.getBoundingClientRect(),r=next?.getBoundingClientRect(),last=rows.at(-1)?.getBoundingClientRect();
+   const top=Math.max(lr.top+2,Math.min(lr.bottom-3,r?r.top-4:last?last.bottom+4:lr.top+12));
+   Object.assign(active.line.style,{left:lr.left+'px',top:top+'px',width:Math.max(20,lr.width-10)+'px',height:'3px'});
+  }
+  active.line.hidden=false;
+ }
+ function tick(){
+  if(!active)return;
+  const list=document.elementFromPoint(active.x,active.y)?.closest('#grid .list');let scrolled=false;
+  if(list&&list.scrollHeight>list.clientHeight){const r=list.getBoundingClientRect();const speed=active.y<r.top+40?-10:active.y>r.bottom-40?10:0;const before=list.scrollTop;list.scrollTop+=speed;scrolled=list.scrollTop!==before;}
+  if(!scrolled){const speed=active.y<70?-12:active.y>innerHeight-90?12:0;if(speed)window.scrollBy(0,speed);}
+  updateTarget();frame=requestAnimationFrame(tick);
+ }
+ grid.addEventListener('dragstart',event=>event.preventDefault());
+ grid.addEventListener('pointerdown',event=>{
+  const handle=event.target.closest('[data-drag-link],[data-drag-group]');if(!handle||event.button!==0||!event.isPrimary)return;
+  const source=handle.closest(handle.hasAttribute('data-drag-link')?'li':'.card');
+  pending={pointer:event.pointerId,handle,source,x:event.clientX,y:event.clientY,id:handle.dataset.dragLink||handle.dataset.dragGroup,kind:handle.hasAttribute('data-drag-link')?'link':'group',sourceGroup:source.dataset.groupId};
+  handle.setPointerCapture(event.pointerId);event.preventDefault();handle.focus({preventScroll:true});
+ });
+ document.addEventListener('pointermove',event=>{
+  if(!pending||event.pointerId!==pending.pointer)return;
+  if(!active&&Math.hypot(event.clientX-pending.x,event.clientY-pending.y)<6)return;
+  event.preventDefault();
+  if(!active){
+   const ghost=document.createElement('div'),line=document.createElement('div'),r=pending.source.getBoundingClientRect();ghost.className='dnd-ghost';ghost.textContent=pending.kind==='link'?pending.source.querySelector('a').textContent.trim():pending.source.querySelector('.card-title').textContent;ghost.style.width=Math.min(r.width,320)+'px';line.className='dnd-line';line.hidden=true;document.body.append(ghost,line);
+   active={...pending,ghost,line,offsetX:Math.min(pending.x-r.left,100),x:event.clientX,y:event.clientY};active.source.classList.add('dnd-source');document.body.classList.add('dnd-active');announce('Перемещение. Esc — отменить.');frame=requestAnimationFrame(tick);
+  }
+  active.x=event.clientX;active.y=event.clientY;updateTarget();
+ },{passive:false});
+ document.addEventListener('pointerup',event=>{if(!pending||event.pointerId!==pending.pointer)return;if(active){active.x=event.clientX;active.y=event.clientY;updateTarget();}const destination=active?.destination;const moved=!!active;cancel();if(destination)commit(destination);else if(moved)announce('Перенос отменён.');});
+ document.addEventListener('pointercancel',()=>{if(active)announce('Перенос отменён.');cancel();});
+ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&(active||pending)){event.preventDefault();cancel();announce('Перенос отменён.');}});
+ window.addEventListener('blur',cancel);window.addEventListener('resize',cancel);
+ grid.addEventListener('click',event=>{if(event.target.closest('.drag-handle'))event.preventDefault();});
+ grid.addEventListener('keydown',event=>{
+  const handle=event.target.closest('[data-drag-link],[data-drag-group]');if(!handle||!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(event.key))return;
+  event.preventDefault();cancel();let move;
+  if(handle.dataset.dragGroup){const index=data.groups.findIndex(g=>g.id===handle.dataset.dragGroup),delta=['ArrowUp','ArrowLeft'].includes(event.key)?-1:1,target=index+delta;if(target<0||target>=data.groups.length)return;move={kind:'group',id:handle.dataset.dragGroup,beforeId:delta<0?data.groups[target].id:data.groups[target+1]?.id||null};}
+  else{
+   const source=handle.closest('li'),gi=data.groups.findIndex(g=>g.id===source.dataset.groupId),group=data.groups[gi],index=group.links.findIndex(l=>l.id===handle.dataset.dragLink);
+   if(event.altKey&&['ArrowLeft','ArrowRight'].includes(event.key)){const dst=data.groups[gi+(event.key==='ArrowLeft'?-1:1)];if(!dst)return;move={kind:'link',id:handle.dataset.dragLink,sourceGroup:group.id,targetGroup:dst.id,beforeId:null};}
+   else{if(!['ArrowUp','ArrowDown'].includes(event.key))return;const delta=event.key==='ArrowUp'?-1:1,target=index+delta;if(target<0||target>=group.links.length)return;move={kind:'link',id:handle.dataset.dragLink,sourceGroup:group.id,targetGroup:group.id,beforeId:delta<0?group.links[target].id:group.links[target+1]?.id||null};}
+  }
+  if(commit(move)){const match=[...grid.querySelectorAll('.drag-handle')].find(h=>(move.kind==='group'?h.dataset.dragGroup:h.dataset.dragLink)===move.id);match?.focus({preventScroll:true});}
+ });
 }
 
 /* ============ АДАПТИВНАЯ ВЫСОТА ============ */
 function updateLayout() {
-  document.querySelectorAll('#grid li[data-link-id]').forEach(item=>item.draggable=innerWidth>899&&!matchMedia('(pointer:coarse)').matches);
   const grid = document.getElementById('grid');
   const cards = grid.querySelectorAll('.card');
   if (!cards.length) {
