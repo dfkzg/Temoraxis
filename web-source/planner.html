@@ -6,9 +6,8 @@
 <meta name="theme-color" content="#0a0a12">
 <title>Temoraxis</title>
 <style>
-/* ============================================================
-   ПЕРЕМЕННЫЕ ТЕМ
-   ============================================================ */
+
+/* Темы и общие цвета. */
 :root {
   --bg: #0a0a12;
   --bg-card: #12121c;
@@ -81,9 +80,7 @@ html[data-theme="space"] {
   --shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
 }
 
-/* ============================================================
-   БАЗА
-   ============================================================ */
+/* Базовые стили страницы. */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
 body {
@@ -97,9 +94,7 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* ============================================================
-   КАРКАС
-   ============================================================ */
+/* Каркас и навигация. */
 .app {
   position: relative;
   z-index: 1;
@@ -113,9 +108,6 @@ body {
   .content { grid-column: 2; }
 }
 
-/* ============================================================
-   НАВИГАЦИЯ
-   ============================================================ */
 .nav {
   position: fixed;
   z-index: 50;
@@ -234,9 +226,7 @@ body {
   .back-btn span { display: none; }
 }
 
-/* ============================================================
-   КОНТЕНТ
-   ============================================================ */
+/* Задачи, фильтры и карточки. */
 .content {
   padding: 32px 24px;
   margin: 0 auto;
@@ -279,19 +269,17 @@ body {
   margin-bottom: 20px; max-width: 100%;
 }
 
-/* Оформление полей даты и времени */
 input[type="date"],
 input[type="time"] {
-  color-scheme: dark; /* Делает стандартный календарь тёмным в тёмной теме */
+  color-scheme: dark;
   cursor: pointer;
 }
 
 html[data-theme="light"] input[type="date"],
 html[data-theme="light"] input[type="time"] {
-  color-scheme: light; /* Делает стандартный календарь светлым в светлой теме */
+  color-scheme: light;
 }
 
-/* Делаем иконки аккуратными и полупрозрачными */
 input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="time"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
@@ -307,7 +295,6 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   background: var(--border);
 }
 
-/* Убираем стандартные стрелочки (спиннеры) у поля времени */
 input[type="time"]::-webkit-inner-spin-button,
 input[type="time"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
@@ -420,9 +407,7 @@ input[type="time"]::-webkit-outer-spin-button {
 .task-tag { background: var(--accent-soft); color: var(--accent); padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; }
 .task-progress { font-size: 11px; color: var(--text-dim); background: var(--bg-item); padding: 2px 8px; border-radius: 999px; }
 
-/* ============================================================
-   МОДАЛКИ
-   ============================================================ */
+/* Формы и окна задач. */
 .modal-bg {
   position: fixed; inset: 0; z-index: 200;
   background: rgba(10, 10, 18, 0.78); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
@@ -470,7 +455,6 @@ input[type="time"]::-webkit-outer-spin-button {
   .btn-primary, .btn-secondary { flex: 1; }
 }
 
-/* Формы */
 .form-group { margin-bottom: 18px; }
 .form-label { display: block; font-size: 13px; font-weight: 600; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
 .form-input {
@@ -549,9 +533,7 @@ textarea.form-input { resize: vertical; min-height: 60px; }
 .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); border-radius: var(--r-md); padding: 10px 20px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: all var(--t-fast); }
 .btn-danger:hover { background: rgba(255, 90, 110, 0.1); }
 
-/* ============================================================
-   РАЗДЕЛ «КАЛЕНДАРЬ»
-   ============================================================ */
+/* Календарь и расписание выбранного дня. */
 .cal-topbar {
   display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 16px;
 }
@@ -595,97 +577,91 @@ textarea.form-input { resize: vertical; min-height: 60px; }
 }
 
 .cal-grid {
-  display: grid; 
-  grid-template-columns: repeat(7, 1fr); 
-  gap: 8px; 
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
   margin-bottom: 24px;
-  width: 100%; 
+  width: 100%;
   max-width: 1000px;
   margin-left: auto;
   margin-right: auto;
 }
 
 .cal-cell {
-  aspect-ratio: 1 / 1; 
-  display: flex; 
-  flex-direction: column; 
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
   position: relative;
-  padding: 8px; 
-  border-radius: var(--r-md); 
+  padding: 8px;
+  border-radius: var(--r-md);
   cursor: pointer;
-  border: 1px solid var(--border); 
-  background: var(--bg-card); 
+  border: 1px solid var(--border);
+  background: var(--bg-card);
   transition: all var(--t-fast);
   overflow: hidden;
   width: 100%;
 }
 
-.cal-cell:hover { 
-  background: var(--bg-elev); 
-  border-color: var(--border-hi); 
+.cal-cell:hover {
+  background: var(--bg-elev);
+  border-color: var(--border-hi);
 }
 
 .cal-cell-number {
-  font-size: 14px; 
-  font-weight: 600; 
-  color: var(--text); 
-  position: absolute; 
-  top: 8px; 
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  position: absolute;
+  top: 8px;
   left: 10px;
 }
 
-/* Дни соседних месяцев в основной сетке — приглушённые, но чёткие. */
-.cal-cell.other { 
+.cal-cell.other {
   opacity: 0.65;
-  cursor: default; 
-  pointer-events: none; /* Полный запрет на клики */
-  background: transparent; 
+  cursor: default;
+  pointer-events: none;
+  background: transparent;
   border-color: transparent;
 }
-.cal-cell.other .cal-cell-number { 
+.cal-cell.other .cal-cell-number {
   color: var(--text-dim);
   font-weight: 400;
 }
 
-/* Выходные */
 .cal-cell.weekend:not(.today) {
   border: 1px solid var(--accent-soft);
   background: rgba(107, 133, 255, 0.03);
 }
-.cal-cell.weekend:not(.today) .cal-cell-number { 
-  color: var(--accent-2); 
+.cal-cell.weekend:not(.today) .cal-cell-number {
+  color: var(--accent-2);
 }
 
-/* Сегодня */
 .cal-cell.today {
-  background: var(--accent); 
-  border-color: var(--accent); 
+  background: var(--accent);
+  border-color: var(--accent);
   box-shadow: 0 4px 16px var(--accent-soft);
 }
-.cal-cell.today .cal-cell-number { 
-  color: #fff; 
+.cal-cell.today .cal-cell-number {
+  color: #fff;
 }
 
-/* Праздники */
 .cal-cell.holiday:not(.today) {
-  background: var(--accent-soft); 
+  background: var(--accent-soft);
   border-color: rgba(107, 133, 255, 0.3);
 }
-.cal-cell.holiday:not(.today) .cal-cell-number { 
-  color: var(--accent); 
+.cal-cell.holiday:not(.today) .cal-cell-number {
+  color: var(--accent);
 }
 
-/* Выходные соседних месяцев не получают яркое оформление текущего месяца. */
 #calGrid .cal-cell.other.weekend:not(.today) { opacity:.35; background:transparent; border-color:transparent; }
 #calGrid .cal-cell.other.weekend:not(.today) .cal-cell-number { color:var(--text-mute); }
 
-/* Точки задач */
 .cal-dots {
-  display: flex; 
-  gap: 3px; 
-  align-items: center; 
+  display: flex;
+  gap: 3px;
+  align-items: center;
   justify-content: center;
-  margin-top: auto; 
+  margin-top: auto;
   padding-bottom: 4px;
 }
 .cal-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
@@ -694,7 +670,6 @@ textarea.form-input { resize: vertical; min-height: 60px; }
 .cal-dot.prio-low  { background: var(--prio-low); }
 .cal-dot-more { font-size: 9px; color: var(--text-mute); font-weight: 700; line-height: 1; margin-left: 2px; }
 
-/* Метка особой даты */
 .cal-special-badge {
   position: absolute; top: 8px; right: 8px; width: 8px; height: 8px;
   border-radius: 50%; box-shadow: 0 0 4px currentColor;
@@ -722,7 +697,6 @@ textarea.form-input { resize: vertical; min-height: 60px; }
 .cal-agenda-between { margin:0; }
 .cal-agenda-body { display: flex; flex-direction: column; gap: 16px; }
 
-/* Новая сетка Agenda: слева часы, справа задачи */
 .cal-agenda-layout {
   display: grid;
   grid-template-columns: 240px 1fr;
@@ -735,8 +709,7 @@ textarea.form-input { resize: vertical; min-height: 60px; }
     grid-template-columns: 1fr;
     gap: 16px;
   }
-  
-  /* Скрываем виджет часов на телефоне */
+
   .cal-agenda-left {
     display: none;
   }
@@ -938,6 +911,7 @@ textarea.form-input { resize: vertical; min-height: 60px; }
 .cal-transition-layer { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 30; }
 .cal-header-btn:disabled { cursor: default; opacity: .5; }
 
+/* Циферблаты, краски и редактор шаблонов. */
 .clock-toolbar, .clock-tools, .clock-template-tools { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:18px; }
 .clock-toolbar label, .clock-tools label { display:flex; align-items:center; gap:8px; color:var(--text-dim); font-size:13px; }
 .clock-toolbar input, .clock-toolbar select, .clock-tools select, .clock-tools input, .clock-template-tools input { background:var(--bg-item); color:var(--text); border:1px solid var(--border); border-radius:var(--r-sm); padding:9px; font:inherit; min-width:0; }
@@ -1029,6 +1003,7 @@ textarea.form-input { resize: vertical; min-height: 60px; }
  .settings-panel { display:none; min-width:0; }
  .settings-panel.active { display:grid; grid-template-columns:minmax(0,1fr); gap:14px; }
 }
+/* Настройки и история. */
 .settings-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
 .settings-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--r-xl); padding:24px; min-width:0; }
 .settings-card h2 { font-size:17px; margin-bottom:20px; }
@@ -1088,7 +1063,8 @@ html[data-theme="space"] .settings-stars { display:block; }
     <span>Назад</span>
   </a>
 
-  <nav class="nav" id="nav">
+  <!-- Навигация. -->
+<nav class="nav" id="nav">
     <button class="nav-btn active" data-page="tasks" title="Задачи">
       <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" data-icon="temoraxis-tasks"><path d="M5 6H27V27H5Z M5 13H27 M12 13V27 M16 19h7 M16 24h5"/><circle cx="8.5" cy="19" r="1" fill="currentColor" stroke="none"/><circle cx="8.5" cy="24" r="1" fill="currentColor" stroke="none"/></svg>
       <span>Задачи</span>
@@ -1108,7 +1084,8 @@ html[data-theme="space"] .settings-stars { display:block; }
   </nav>
 
   <main class="content">
-    <section class="page active" id="page-tasks">
+    <!-- Задачи. -->
+<section class="page active" id="page-tasks">
       <h1 class="page-title">Задачи</h1>
       <section class="theme-welcome" id="themeWelcome" aria-labelledby="themeWelcomeTitle" hidden>
         <h2 id="themeWelcomeTitle">Выберите оформление</h2>
@@ -1159,9 +1136,10 @@ html[data-theme="space"] .settings-stars { display:block; }
       </button>
     </section>
 
-    <section class="page" id="page-calendar">
+    <!-- Календарь. -->
+<section class="page" id="page-calendar">
       <h1 class="page-title">Календарь</h1>
-      
+
       <div class="cal-topbar">
         <div class="cal-view-switch">
           <button class="cal-view-btn active" data-view="month">Месяц</button>
@@ -1177,7 +1155,7 @@ html[data-theme="space"] .settings-stars { display:block; }
 
       <div class="cal-3d-wrapper" id="calMonthLayout">
         <div class="cal-side cal-side-left" id="calPrevMonthCol" aria-hidden="true" inert></div>
-        
+
         <div class="cal-center" id="calMonthView">
           <div class="cal-weekdays-row">
             <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
@@ -1212,7 +1190,8 @@ html[data-theme="space"] .settings-stars { display:block; }
       </div>
     </section>
 
-    <section class="page" id="page-clock">
+    <!-- Часы-планёр. -->
+<section class="page" id="page-clock">
       <h1 class="page-title">Часы-планёр</h1>
       <p class="clock-description">Выберите час, затем закрасьте минуты. Один блок — 5 минут. Можно вести по циферблату, чтобы выделить несколько блоков. Правый клик открывает подпись и очистку.</p>
       <div class="clock-paint-box" aria-labelledby="clockPaintTitle">
@@ -1260,7 +1239,8 @@ html[data-theme="space"] .settings-stars { display:block; }
         </div>
       </div>
     </section>
-    <section class="page" id="page-settings">
+    <!-- Настройки. -->
+<section class="page" id="page-settings">
       <h1 class="page-title">Настройки</h1>
       <p id="settingsStatus" class="settings-status" role="status" aria-live="polite">Изменения сохраняются автоматически.</p>
       <div id="settingsTabs" class="settings-tabs" role="tablist" aria-label="Разделы настроек"></div>
@@ -1338,6 +1318,7 @@ html[data-theme="space"] .settings-stars { display:block; }
   </main>
 </div>
 
+<!-- Форма задачи. -->
 <div class="modal-bg" id="taskModalBg" hidden>
   <div class="modal" id="taskModal" role="dialog" aria-modal="true" aria-labelledby="taskModalTitle">
     <div class="modal-header">
@@ -1451,6 +1432,7 @@ html[data-theme="space"] .settings-stars { display:block; }
 
 <datalist id="tagSuggestions"></datalist>
 <script>
+/* Хранилище данных и работа с датами. */
 const STORAGE_KEYS = {
   theme: 'planner_theme',
   tasks: 'planner_tasks_v1',
@@ -1497,6 +1479,7 @@ function createTaskData(partial = {}) {
   return Object.assign(base, partial);
 }
 
+/* Модель задач и сохранение изменений. */
 function normalizeTask(task) {
   if (!task || typeof task !== 'object') return null;
   const base = createTaskData();
@@ -1576,6 +1559,7 @@ function getSubtaskProgress(task) {
   return { done, total: task.subtasks.length };
 }
 
+/* Темы и навигация. */
 const PLANNER_THEMES={dark:{name:'Тёмная',background:'#0a0a12',card:'#1a1a26',accent:'#6b85ff'},light:{name:'Светлая',background:'#f4f5fa',card:'#ffffff',accent:'#4d6bff'},space:{name:'Космос',background:'#07060f',card:'#262244',accent:'#d8b4fe'}};
 function buildPlannerStars() {
   let container=document.querySelector('.settings-stars');
@@ -1616,7 +1600,6 @@ function initTheme() {
   document.getElementById('themeWelcomeContinue').onclick=()=>{savePlannerTheme(document.documentElement.getAttribute('data-theme'));welcome.hidden=Object.prototype.hasOwnProperty.call(PLANNER_THEMES,Store.get(STORAGE_KEYS.theme,null));};
 }
 
-
 function initNav() {
   const nav = document.getElementById('nav');
   const buttons = nav.querySelectorAll('.nav-btn');
@@ -1633,7 +1616,7 @@ function initNav() {
   buttons.forEach(btn => btn.addEventListener('click', () => go(btn.dataset.page)));
 }
 
-/* ЗАДАЧИ */
+/* Список задач, фильтры и состояния. */
 const TasksUI = { sort: 'date', period: 'day', status: 'all', search: '', selectedId: null };
 const ModalState = { editingTaskId: null, selectedPriority: 'mid', selectedRepeat: 'none', selectedRepeatDays: [], currentTags: [], currentSubtasks: [] };
 
@@ -1836,7 +1819,7 @@ function renderTasks() {
   } else {
     list.innerHTML = tasks.map(renderTaskCard).join('');
   }
-  
+
   document.getElementById('tasksDateFilter').hidden = !TasksUI.dateFilter;
   document.getElementById('tasksDateFilterLabel').textContent = TasksUI.dateFilter ? 'Задачи на ' + new Date(TasksUI.dateFilter + 'T12:00:00').toLocaleDateString('ru-RU') : '';
   if (TasksUI.selectedId && (!getTask(TasksUI.selectedId) || getTask(TasksUI.selectedId).deleted)) closeTaskDetail();
@@ -1859,7 +1842,7 @@ function openTaskDetail(id, fromExternal = false, occurrenceDate = null) {
   let html = '';
   html += `<div class="detail-section"><div class="detail-label">Описание</div><div class="detail-value ${!task.description ? 'empty' : ''}">${escapeHtml(task.description || 'Не указано')}</div></div>`;
     html += `<div class="detail-section"><div class="detail-label">Дата и время</div><div class="detail-value">${formatTaskDate(task)}${task.time ? ' · ' + escapeHtml(displayTime(task.time)) : ''}</div></div>`;
-  
+
   html += `<div class="detail-section"><div class="detail-label">Статус</div><div class="detail-value">${{todo:'Актуальная',waiting:'Скоро срок',done:'Выполнена',missed:'Пропущена'}[task.status] || 'Актуальная'}</div></div>`;
   if (isRecurringTask(task)) html += '<p class="settings-help">Отметка выполнения и чек-лист относятся к этой дате. Редактирование меняет правило повторения для всей серии.</p>';
   if (task.tags.length) html += `<div class="detail-section"><div class="detail-label">Теги</div><div class="task-meta">${task.tags.map(tag=>`<span class="task-tag">${escapeHtml(tag)}</span>`).join('')}</div></div>`;
@@ -1874,7 +1857,7 @@ function openTaskDetail(id, fromExternal = false, occurrenceDate = null) {
     <div class="settings-actions"><button type="button" class="btn-danger" id="btnConfirmDeleteDetail">${isRecurringTask(task)?'Удалить серию':'Удалить задачу'}</button><button type="button" class="btn-secondary" id="btnCancelDeleteDetail">Отмена</button></div>
     <p id="detailDeleteError" role="alert" hidden>Не удалось сохранить удаление. Проверьте доступность хранилища браузера и повторите попытку.</p>
   </div>`;
-  
+
   body.innerHTML = html;
 
   document.getElementById('btnCompleteDetail').onclick = () => {setTaskDone(id,task.date);openTaskDetail(id,fromExternal,task.date);renderTasks();};
@@ -1884,7 +1867,7 @@ function openTaskDetail(id, fromExternal = false, occurrenceDate = null) {
     updateTaskOccurrence(id,task.date,{subtasks});
     input.closest('label').classList.toggle('done',input.checked);renderTasks();
   });
-  /* Обработчики кнопок в панели */
+
   document.getElementById('btnEditDetail')?.addEventListener('click', () => {
     closeTaskDetail();
     openTaskModal(id);
@@ -1925,7 +1908,6 @@ function closeTaskDetail() {
   renderTasks();
 }
 
-/* МОДАЛКА */
 function populateSoundSelect() {
   const select=document.getElementById('soundSelect');
   if(select) soundOptions(select, select.value || plannerSettings().sound);
@@ -2011,6 +1993,7 @@ function updateRepeatUI() {
   });
 }
 
+/* Создание и редактирование задач. */
 function openTaskModal(taskId) {
   const bg = document.getElementById('taskModalBg');
   const title = document.getElementById('taskModalTitle');
@@ -2245,7 +2228,7 @@ function initTasksUI() {
   });
 }
 
-/* КАЛЕНДАРЬ */
+/* Календарь: месяц, неделя и выбранная дата. */
 const CalState = { view: 'month', monthYear: null, weekStart: null, agendaDate: null, agendaView: Store.get('planner_calendar_agenda_view_v1','important') === 'schedule' ? 'schedule' : 'important' };
 const MONTH_NAMES_NOM = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 const MONTH_NAMES_GEN = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
@@ -2347,8 +2330,7 @@ async function moveCalendarMonth(direction) {
     }));
   };
   const transform = (source, target) => `translate(${target.left - source.left}px, ${target.top - source.top}px) scale(${target.width / source.width})`;
-  // Чёткая и размытая версии движутся вместе и плавно сменяют друг друга.
-  // Сам blur остаётся постоянным: браузеру не нужно пересчитывать его каждый кадр.
+
   const outgoingTransform = transform(oldCenter.rect, outgoingTarget.rect);
   const outgoingStart = transform(outgoingTarget.rect, oldCenter.rect);
   add(oldCenter,
@@ -2377,7 +2359,7 @@ async function moveCalendarMonth(direction) {
   try {
     await Promise.all(transition.animations.map(animation => animation.finished));
   } catch (_) {
-    // Переключение вида, прокрутка или изменение окна завершает переход сразу.
+
   } finally {
     if (monthTransition === transition) stopMonthTransition();
   }
@@ -2401,14 +2383,13 @@ function renderMonthGrid() {
   const grid = document.getElementById('calGrid');
   const title = document.getElementById('calHeaderTitle');
   if (!grid || !title) return;
-  
+
   const { year, month } = CalState.monthYear;
   title.textContent = MONTH_NAMES_NOM[month] + ' ' + year;
   grid.innerHTML = '';
 
   const today = todayKey();
 
-  /* --- 1. Отрисовка ЦЕНТРАЛЬНОГО месяца --- */
   const firstDay = new Date(year, month, 1);
   const startDow = (firstDay.getDay() + 6) % 7;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -2470,7 +2451,6 @@ function renderMonthGrid() {
     grid.appendChild(cell);
   }
 
-  /* --- 2. Отрисовка БОКОВЫХ месяцев --- */
   const renderGhostMonth = (container, targetYear, targetMonth) => {
     if (!container) return;
     container.innerHTML = '';
@@ -2478,17 +2458,15 @@ function renderMonthGrid() {
     heading.className = 'cal-side-header';
     heading.textContent = MONTH_NAMES_NOM[targetMonth] + ' ' + targetYear;
     container.appendChild(heading);
-    
-    // Копируем шапку дней недели
+
     const weekdaysRow = document.createElement('div');
     weekdaysRow.className = 'cal-weekdays-row';
     weekdaysRow.innerHTML = '<span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>';
     container.appendChild(weekdaysRow);
 
-    // Создаём сетку
     const ghostGrid = document.createElement('div');
     ghostGrid.className = 'cal-grid';
-    
+
     const first = new Date(targetYear, targetMonth, 1);
     const sDow = (first.getDay() + 6) % 7;
     const daysInM = new Date(targetYear, targetMonth + 1, 0).getDate();
@@ -2512,7 +2490,6 @@ function renderMonthGrid() {
     container.appendChild(ghostGrid);
   };
 
-  // Вычисляем прошлый и следующий месяц
   let prevM = month - 1, prevY = year;
   if (prevM < 0) { prevM = 11; prevY--; }
   let nextM = month + 1, nextY = year;
@@ -2599,11 +2576,10 @@ function renderAgenda() {
   const holiday = isRussianHoliday(dateStr);
 
   let html = '';
-  
-  /* Создаём двухколоночную сетку: слева часы, справа задачи */
+
   html += `<div class="cal-agenda-layout${showSchedule ? '' : ' cal-agenda-important'}">`;
   if(showSchedule) html += `<div class="cal-agenda-left">${clockDayPreview(dateStr)}</div>`;
-  
+
   html += `<div class="cal-agenda-right${showSchedule ? ' cal-agenda-schedule' : ''}">`;
 
   if (!showSchedule) {
@@ -2633,8 +2609,8 @@ function renderAgenda() {
     html+=important.length ? `<div class="cal-agenda-tasks">${important.map(t=>calendarTaskRow(t,dateStr,false)).join('')}</div>` : holiday || specials.length ? '' : '<div class="cal-agenda-empty">На этот день нет задач без указанного времени</div>';
   }
 
-  html += `</div>`; /* конец правой колонки */
-  html += `</div>`; /* конец общей сетки */
+  html += `</div>`;
+  html += `</div>`;
 
   bodyEl.innerHTML = html;
 
@@ -2653,7 +2629,6 @@ function renderAgenda() {
       navigateToTasks(taskId,dateStr);
     });
   });
-
 
 }
 
@@ -2715,7 +2690,6 @@ function initCalEvents() {
     });
   });
 
-  /* Навигация Назад / Вперед (зависит от вида) */
   document.getElementById('calPrevBtn')?.addEventListener('click', () => {
     if (CalState.view === 'month') {
       moveCalendarMonth(-1);
@@ -2736,18 +2710,16 @@ function initCalEvents() {
     renderCalendar();
   });
 
-  /* Кнопка Сегодня (сбрасывает и месяц, и неделю) */
   document.getElementById('calTodayBtn')?.addEventListener('click', () => {
     const now = new Date();
     CalState.monthYear = { year: now.getFullYear(), month: now.getMonth() };
     CalState.agendaDate = new Date(now);
-    
-    // Пересчитываем начало текущей недели
+
     const dayOfWeek = now.getDay();
     const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
     CalState.weekStart = new Date(now);
     CalState.weekStart.setDate(now.getDate() + mondayOffset);
-    
+
     renderCalendar();
   });
 
@@ -2761,6 +2733,7 @@ function initCalEvents() {
   });
 }
 
+/* Расписание, шаблоны и рисование на циферблате. */
 const ClockUI = { editingTemplate:null, draft:null, dirty:false, date: todayKey(), hour: new Date().getHours(), erase: false, block: 0, dragging: false, touched: new Set() };
 function emptyClockSlots() { return Array(288).fill(null); }
 function defaultClockTemplates() {
@@ -2864,7 +2837,7 @@ function clockTaskMarkers(date, selectedHour = null, interactive = true) {
 }
 function clockDayPreview(date) {
   const slots = clockSchedule(date), minutes = slots.filter(Boolean).length * 5;
-  // This small calendar overview uses continuous arcs; editable clock grids stay detailed.
+
   let svg = '<circle cx="200" cy="200" r="140" fill="none" stroke="var(--bg-item)" stroke-width="64"/>';
   for (const {start,end,slot} of clockDayRanges(date)) {
     svg += `<circle cx="200" cy="200" r="140" fill="none" stroke="${clockColor(slot)}" stroke-width="64" pathLength="288" stroke-dasharray="${end-start} ${288-(end-start)}" stroke-dashoffset="${-start}" transform="rotate(-90 200 200)"><title>${clockRangeTime(start)} — ${clockRangeTime(end)} · ${escapeHtml(slot.label || 'Без подписи')}</title></circle>`;
@@ -3027,6 +3000,7 @@ function initClock() {
   renderClock();
 }
 
+/* Звуки, уведомления и настройки. */
 const DEFAULT_SOUNDS = ['its-realme-default-rm.mp3','calm-rm.mp3','dance-rm.mp3','night-rm.mp3','summer-rm.mp3'];
 const SettingsRuntime = { audio: null, audioURL: null, soundRequest: 0, soundDB: null };
 function plannerSettings() {
@@ -3052,7 +3026,7 @@ function soundDatabase() {
   }).catch(error => { SettingsRuntime.soundDB = null; throw error; });
   return SettingsRuntime.soundDB;
 }
-// Доступ к аудиотеке также проходит через Store; большие файлы хранятся в IndexedDB.
+
 Store.audio = {
   async replace(files) {
     const db = await soundDatabase();
@@ -3079,7 +3053,7 @@ async function playPlannerSound(name) {
   stopPlannerSound();
   const requestID=SettingsRuntime.soundRequest;
   let file;
-  try { file=await Store.audio.get(name); } catch (_) { /* Можно воспроизвести файл из sounds/ рядом с HTML. */ }
+  try { file=await Store.audio.get(name); } catch (_) {  }
   if(requestID!==SettingsRuntime.soundRequest)return;
   if(file) SettingsRuntime.audioURL=URL.createObjectURL(file);
   const audio=new Audio(SettingsRuntime.audioURL || 'sounds/'+encodeURIComponent(name));
@@ -3214,6 +3188,7 @@ function checkTaskReminders() {
   }
 }
 
+/* Просмотр истории задач. */
 const HistoryUI = { period: 'all', status: 'all', sort: 'date', search: '', date: todayKey() };
 function historyTaskDate(task) {
   const date = task.date || (task.updatedAt || task.createdAt || '').slice(0,10);
@@ -3268,6 +3243,7 @@ function initHistory() {
   renderHistory();
 }
 
+/* Разделы настроек и обработчики формы. */
 const SettingsTabs={groups:{appearance:'Оформление',reminders:'Напоминания',planning:'Планы',history:'История',data:'Данные'},active:Store.get('planner_settings_tab_v1','appearance'),media:matchMedia('(max-width:899px)')};
 function registerSettingsCard(card,group,order) {
   const panel=document.getElementById('settings-panel-'+group);
@@ -3350,7 +3326,6 @@ function initSettings() {
   setInterval(()=>{checkTaskReminders();if(document.hidden)return;refreshTaskState();},15000);
 }
 
-
 function initMobileNav() {
   const nav=document.getElementById('nav');
   let previous=window.scrollY, accumulated=0, direction=0;
@@ -3368,6 +3343,7 @@ function initMobileNav() {
   window.addEventListener('resize',show);
   document.addEventListener('pointermove',event=>{if(event.pointerType==='mouse'&&event.clientY>innerHeight-24)show();},{passive:true});
 }
+/* Особые даты и напоминания о них. */
 function specialDateColor(date) {return /^#[0-9a-f]{6}$/i.test(date.color||'')?date.color:'#a78bfa';}
 function renderSpecialDateSettings() {
   const list=Store.get(STORAGE_KEYS.specialDates,[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
@@ -3381,7 +3357,7 @@ function initSpecialDates() {
   const resetReminder=()=>{reminderToggle.checked=false;fillReminderLead('settingsSpecialBefore','settingsSpecialUnit',{minutesBefore:10080,beforeUnit:'days'});document.getElementById('settingsSpecialTime').value='09:00';};
   resetReminder();
   document.getElementById('settingsSpecialUnit').onchange=()=>updateReminderLeadMax('settingsSpecialBefore','settingsSpecialUnit');
-  // Добавляем идентификаторы старым записям, не меняя их даты и названия.
+
   const existing=Store.get(STORAGE_KEYS.specialDates,[]);
   if(existing.some(entry=>!entry.id))Store.set(STORAGE_KEYS.specialDates,existing.map(entry=>({...entry,id:entry.id||uid()})));
   document.getElementById('settingsSaveSpecial').onclick=()=>{
@@ -3402,6 +3378,7 @@ function initSpecialDates() {
   renderSpecialDateSettings();
 }
 
+/* Запуск приложения. */
 function init() {
   initTheme();
   initNav();
