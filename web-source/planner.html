@@ -1182,6 +1182,7 @@ html[data-theme="space"] .settings-stars { display:block; }
           <button type="button" class="btn-secondary" id="calApplyWeekdayTemplate">Ко всем дням недели</button>
           <span id="calTemplateStatus" role="status" class="clock-description"></span>
         </div>
+        <div class="clock-tools"><button type="button" class="btn-secondary" id="calAddAnnualEvent">＋ Ежегодное событие</button></div>
         <div class="cal-agenda-view-toggle" role="group" aria-label="Содержимое выбранного дня">
           <button type="button" data-agenda-view="important" class="active" aria-pressed="true">Задачи дня</button>
           <button type="button" data-agenda-view="schedule" aria-pressed="false">Расписание</button>
@@ -1299,12 +1300,12 @@ html[data-theme="space"] .settings-stars { display:block; }
           <div class="tasks-list" id="historyList"></div>
         </section>
 
-        <section class="settings-card settings-wide" data-settings-group="planning"><h2>Особые даты</h2>
-          <div class="settings-actions"><input type="date" id="settingsSpecialDate" aria-label="Особая дата"><input id="settingsSpecialName" placeholder="Название события" maxlength="100" aria-label="Название события"><input type="color" id="settingsSpecialColor" value="#a78bfa" aria-label="Цвет события"><button class="btn-secondary" id="settingsSaveSpecial">Добавить дату</button></div>
+        <section class="settings-card settings-wide" data-settings-group="planning"><h2>Особые даты и ежегодные события</h2>
+          <div class="settings-actions"><label class="settings-field">Ежегодно<input type="checkbox" id="settingsSpecialYearly"></label><input type="date" id="settingsSpecialDate" aria-label="Особая дата"><input id="settingsSpecialName" placeholder="Название события" maxlength="100" aria-label="Название события"><input type="color" id="settingsSpecialColor" value="#a78bfa" aria-label="Цвет события"><button class="btn-secondary" id="settingsSaveSpecial">Добавить дату</button></div>
           <div class="settings-actions"><label class="settings-field">Напоминание<input type="checkbox" id="settingsSpecialReminder"></label><label class="settings-field">За<input type="number" id="settingsSpecialBefore" min="0" max="365" value="7" aria-label="За сколько напомнить"></label><label class="settings-field">Единица<select id="settingsSpecialUnit"><option value="days">Дни</option><option value="hours">Часы</option><option value="minutes">Минуты</option></select></label><label class="settings-field">Время события<input type="time" id="settingsSpecialTime" value="09:00"></label></div>
           <p class="settings-help">Например: событие 10-го в 09:00, напомнить за 7 дней — уведомление придёт 3-го в 09:00.</p>
           <div id="settingsSpecialDates" class="settings-tag-list"></div>
-          <p class="settings-help">Особые даты автоматически отображаются в календаре и экспресс-панели.</p>
+          <p class="settings-help">Включите «Ежегодно» для дня рождения или годовщины. Выключите для разового события. Дата 29 февраля повторяется только в високосные годы.</p>
         </section>
         <section class="settings-card settings-wide" data-settings-group="data"><h2>Данные</h2>
           <div class="settings-actions"><button class="btn-secondary" id="settingsExport">Экспорт всех данных · JSON</button><button class="btn-secondary" id="settingsImport">Импорт · JSON</button><button class="btn-secondary" id="settingsExportDates">Экспорт особых дат</button><button class="btn-danger" id="settingsReset">Сбросить данные планёра</button></div>
@@ -1730,6 +1731,7 @@ function isInPeriod(task, period) {
 }
 
 function isInStatus(task, status, period) {
+  if(period==='day'&&!TasksUI.dateFilter&&task.status==='done'&&task.date!==todayKey())return false;
   if (status === 'done') return task.status === 'done';
   if (status === 'missed') return task.status === 'missed';
   if (period === 'day') return true;
@@ -2259,7 +2261,7 @@ function taskOccursOnDate(task, dateKey) {
   return days.includes(weekday);
 }
 function getTasksForDate(dateKey) { return getAllTasks().filter(t => taskOccursOnDate(t, dateKey)).map(task=>taskAtDate(task,dateKey)); }
-function getSpecialDatesForDate(dateKey) { return Store.get(STORAGE_KEYS.specialDates, []).filter(s => s.date === dateKey); }
+function getSpecialDatesForDate(dateKey) { return Store.get(STORAGE_KEYS.specialDates, []).filter(s => PlannerReminderRules.specialOccurs(s,dateKey)); }
 
 function initCalState() {
   const now = new Date();
@@ -3347,12 +3349,18 @@ function initMobileNav() {
 function specialDateColor(date) {return /^#[0-9a-f]{6}$/i.test(date.color||'')?date.color:'#a78bfa';}
 function renderSpecialDateSettings() {
   const list=Store.get(STORAGE_KEYS.specialDates,[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
-  document.getElementById('settingsSpecialDates').innerHTML=list.length?list.map(date=>`<div class="settings-row"><span><strong style="color:${specialDateColor(date)}">${escapeHtml(date.date)}</strong> · ${escapeHtml(date.name)}</span><button type="button" class="btn-secondary" data-special-edit="${escapeHtml(date.id)}">Изменить</button><button type="button" class="btn-secondary" data-special-delete="${escapeHtml(date.id)}">Удалить</button></div>`).join(''):'<p class="settings-help">Особых дат пока нет.</p>';
+  document.getElementById('settingsSpecialDates').innerHTML=list.length?list.map(date=>`<div class="settings-row"><span><strong style="color:${specialDateColor(date)}">${escapeHtml(date.date)}</strong> · ${escapeHtml(date.name)} · ${date.repeat==='yearly'?'Ежегодно':'Разовое событие'}</span><button type="button" class="btn-secondary" data-special-edit="${escapeHtml(date.id)}">Изменить</button><button type="button" class="btn-secondary" data-special-delete="${escapeHtml(date.id)}">Удалить</button></div>`).join(''):'<p class="settings-help">Особых дат пока нет.</p>';
 }
 function initSpecialDates() {
   let editing=null;
   const date=document.getElementById('settingsSpecialDate'),name=document.getElementById('settingsSpecialName'),color=document.getElementById('settingsSpecialColor');
   date.value=todayKey();
+  const yearly=document.getElementById('settingsSpecialYearly');yearly.checked=true;
+  document.getElementById('calAddAnnualEvent').onclick=()=>{
+   if((editing||name.value.trim())&&!confirm('Заменить несохранённый черновик события?'))return;
+   editing=null;date.value=toDateKey(CalState.agendaDate);name.value='';yearly.checked=true;resetReminder();document.getElementById('settingsSaveSpecial').textContent='Добавить дату';
+   document.querySelector('.nav-btn[data-page="settings"]').click();selectSettingsTab('planning');name.scrollIntoView({block:'center'});name.focus({preventScroll:true});
+  };
   const reminderToggle=document.getElementById('settingsSpecialReminder');
   const resetReminder=()=>{reminderToggle.checked=false;fillReminderLead('settingsSpecialBefore','settingsSpecialUnit',{minutesBefore:10080,beforeUnit:'days'});document.getElementById('settingsSpecialTime').value='09:00';};
   resetReminder();
@@ -3363,16 +3371,16 @@ function initSpecialDates() {
   document.getElementById('settingsSaveSpecial').onclick=()=>{
     if(!date.value||!name.value.trim()){settingsMessage('Укажите дату и название события.');return;}
     if(reminderToggle.checked){const input=document.getElementById('settingsSpecialBefore');input.required=true;if(!input.reportValidity())return;}
-    const entries=Store.get(STORAGE_KEYS.specialDates,[]),entry={id:editing||uid(),date:date.value,name:name.value.trim(),color:color.value,reminder:{enabled:reminderToggle.checked,minutesBefore:readReminderLead('settingsSpecialBefore','settingsSpecialUnit'),beforeUnit:document.getElementById('settingsSpecialUnit').value,atTime:document.getElementById('settingsSpecialTime').value||'09:00',repeatUntilDone:false}};
+    const entries=Store.get(STORAGE_KEYS.specialDates,[]),entry={id:editing||uid(),date:date.value,name:name.value.trim(),color:color.value,repeat:yearly.checked?'yearly':null,reminder:{enabled:reminderToggle.checked,minutesBefore:readReminderLead('settingsSpecialBefore','settingsSpecialUnit'),beforeUnit:document.getElementById('settingsSpecialUnit').value,atTime:document.getElementById('settingsSpecialTime').value||'09:00',repeatUntilDone:false}};
     const index=entries.findIndex(item=>item.id===editing);
     if(index>=0)entries[index]=entry;else entries.push(entry);
     resetEditedReminderMarks(PlannerReminderRules.specialTasks(Store.get(STORAGE_KEYS.specialDates,[])),PlannerReminderRules.specialTasks(entries));
-    Store.set(STORAGE_KEYS.specialDates,entries);editing=null;name.value='';resetReminder();document.getElementById('settingsSaveSpecial').textContent='Добавить дату';
+    Store.set(STORAGE_KEYS.specialDates,entries);editing=null;name.value='';yearly.checked=true;resetReminder();document.getElementById('settingsSaveSpecial').textContent='Добавить дату';
     renderSpecialDateSettings();renderCalendar();settingsMessage('Особая дата сохранена.');
   };
   document.getElementById('settingsSpecialDates').onclick=event=>{
     const edit=event.target.closest('[data-special-edit]'),remove=event.target.closest('[data-special-delete]');
-    if(edit){const entry=Store.get(STORAGE_KEYS.specialDates,[]).find(item=>item.id===edit.dataset.specialEdit);if(!entry)return;editing=entry.id;date.value=entry.date;name.value=entry.name;color.value=specialDateColor(entry);reminderToggle.checked=!!entry.reminder?.enabled;fillReminderLead('settingsSpecialBefore','settingsSpecialUnit',entry.reminder||{minutesBefore:10080,beforeUnit:'days'});document.getElementById('settingsSpecialTime').value=entry.reminder?.atTime||'09:00';document.getElementById('settingsSaveSpecial').textContent='Сохранить изменения';name.focus();}
+    if(edit){const entry=Store.get(STORAGE_KEYS.specialDates,[]).find(item=>item.id===edit.dataset.specialEdit);if(!entry)return;editing=entry.id;date.value=entry.date;yearly.checked=entry.repeat==='yearly';name.value=entry.name;color.value=specialDateColor(entry);reminderToggle.checked=!!entry.reminder?.enabled;fillReminderLead('settingsSpecialBefore','settingsSpecialUnit',entry.reminder||{minutesBefore:10080,beforeUnit:'days'});document.getElementById('settingsSpecialTime').value=entry.reminder?.atTime||'09:00';document.getElementById('settingsSaveSpecial').textContent='Сохранить изменения';name.focus();}
     if(remove){Store.set(STORAGE_KEYS.specialDates,Store.get(STORAGE_KEYS.specialDates,[]).filter(item=>item.id!==remove.dataset.specialDelete));if(editing===remove.dataset.specialDelete){editing=null;name.value='';resetReminder();document.getElementById('settingsSaveSpecial').textContent='Добавить дату';}renderSpecialDateSettings();renderCalendar();}
   };
   renderSpecialDateSettings();

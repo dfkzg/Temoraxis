@@ -585,7 +585,7 @@ function renderCalendar() {
     if (!c.other && isThisMonth && c.day === today.getDate()) {
       el.classList.add('today');
     }
-    if(!c.other){const dates=startSpecialDates().filter(entry=>entry.date===startSpecialDateKey(c.day));if(dates.length){el.classList.add('has-special');el.title=dates.map(entry=>entry.name).join(', ');}}
+    if(!c.other){const dates=startSpecialDates().filter(entry=>window.PlannerReminderRules?PlannerReminderRules.specialOccurs(entry,startSpecialDateKey(c.day)):entry.date===startSpecialDateKey(c.day));if(dates.length){el.classList.add('has-special');el.title=dates.map(entry=>entry.name).join(', ');}}
     grid.appendChild(el);
   });
 }
@@ -1067,7 +1067,7 @@ function startSpecialDates() {
 function startSpecialDateKey(day) {return `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;}
 function renderStartSpecialDates() {
   const list=document.getElementById('startSpecialList'),today=new Date(),todayKey=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-  const entries=startSpecialDates().filter(entry=>entry.date>=todayKey).sort((a,b)=>a.date.localeCompare(b.date));
+  const entries=startSpecialDates().map(entry=>{if(entry.repeat!=='yearly'||!window.PlannerReminderRules)return entry;const date=PlannerReminderRules.specialOccurrences(entry).find(date=>date>=todayKey);return date?{...entry,date}:entry;}).filter(entry=>entry.date>=todayKey).sort((a,b)=>a.date.localeCompare(b.date));
   list.innerHTML=entries.length?entries.slice(0,8).map(entry=>`<div class="start-special-item"><time>${escapeHtml(entry.date)}</time><span>${escapeHtml(entry.name)}</span></div>`).join(''):'<p>Нет предстоящих особых дат. Добавьте их в настройках планёра.</p>';
   renderCalendar();
 }
